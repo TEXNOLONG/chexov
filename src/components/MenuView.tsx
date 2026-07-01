@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react'
 import menuData from '../data/menu.json'
 import type { MenuItem } from '../types'
 import { formatPrice, groupMenuByCategory } from '../utils'
+import { DishModal } from './DishModal'
+import { useLongPress } from '../hooks/useLongPress'
 
 const menu = menuData as MenuItem[]
 
@@ -21,9 +23,9 @@ interface Props {
 export function MenuView({ onPickItem, selectable }: Props) {
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState<string>('all')
-  const [expandedId, setExpandedId] = useState<string | null>(null)
   const [section, setSection] = useState<'food' | 'drinks'>('food')
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
+  const [detailItem, setDetailItem] = useState<MenuItem | null>(null)
 
   const categories = useMemo(() => [...new Set(menu.map((m) => m.category))], [])
   const foodCats = useMemo(() => categories.filter((c) => !DRINK_CATS.has(c)), [categories])
@@ -52,282 +54,274 @@ export function MenuView({ onPickItem, selectable }: Props) {
 
   function handleCategoryClick(cat: string) {
     setCategory(cat)
-    setExpandedId(null)
   }
 
   return (
-    <div className="space-y-3 pb-2">
-      {/* Search bar */}
-      <div className="sticky top-0 z-20 space-y-3 pt-1 pb-2"
-        style={{ background: 'var(--bg)' }}>
+    <>
+      {/* Detail modal */}
+      {detailItem && (
+        <DishModal
+          item={detailItem}
+          onClose={() => setDetailItem(null)}
+          onAdd={selectable && onPickItem ? (item) => { onPickItem(item); setDetailItem(null) } : undefined}
+        />
+      )}
 
-        <div className="relative">
-          <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--muted)] pointer-events-none"
-            viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35" strokeLinecap="round"/>
-          </svg>
-          <input
-            value={query}
-            onChange={(e) => { setQuery(e.target.value); setCategory('all') }}
-            placeholder="Поиск блюд, состава, аллергенов…"
-            className="search-input"
-          />
-          {query && (
-            <button
-              type="button"
-              onClick={() => { setQuery(''); setCategory('all') }}
-              className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center rounded-full bg-[var(--surface-3)] text-[var(--muted)] text-xs"
-            >
-              ✕
-            </button>
+      <div className="space-y-3 pb-2">
+        {/* ── Search bar ── */}
+        <div className="sticky top-0 z-20 space-y-2.5 pt-1 pb-2" style={{ background: 'var(--bg)' }}>
+          <div className="relative">
+            <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" style={{ color: 'var(--muted)' }}
+              viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35" strokeLinecap="round"/>
+            </svg>
+            <input
+              value={query}
+              onChange={(e) => { setQuery(e.target.value); setCategory('all') }}
+              placeholder="Поиск блюд, состава, аллергенов…"
+              className="search-input"
+            />
+            {query && (
+              <button
+                type="button"
+                onClick={() => { setQuery(''); setCategory('all') }}
+                className="absolute right-3 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center rounded-full text-sm"
+                style={{ background: 'var(--surface-3)', color: 'var(--muted)' }}
+              >✕</button>
+            )}
+          </div>
+
+          {/* Food / Drinks toggle + view mode */}
+          {!query && (
+            <div className="flex gap-2 items-center">
+              <div className="flex flex-1 gap-1 p-1 rounded-2xl" style={{ background: 'var(--surface-2)' }}>
+                {(['food', 'drinks'] as const).map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => { setSection(s); setCategory('all') }}
+                    className="flex-1 py-2 rounded-xl text-sm font-bold transition-all duration-200"
+                    style={section === s
+                      ? { background: 'var(--accent)', color: '#0a0806' }
+                      : { color: 'var(--muted)' }
+                    }
+                  >
+                    {s === 'food' ? '🍽 Кухня' : '🍷 Бар'}
+                  </button>
+                ))}
+              </div>
+              {!selectable && (
+                <button
+                  type="button"
+                  onClick={() => setViewMode(v => v === 'grid' ? 'list' : 'grid')}
+                  className="w-10 h-10 flex items-center justify-center rounded-xl shrink-0"
+                  style={{ background: 'var(--surface-2)', color: 'var(--muted)' }}
+                >
+                  {viewMode === 'grid'
+                    ? <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-4 h-4"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" strokeLinecap="round"/></svg>
+                    : <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-4 h-4"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+                  }
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Category pills */}
+          {!query && (
+            <div className="flex gap-1.5 overflow-x-auto pb-0.5 scrollbar-hide">
+              <button type="button" onClick={() => handleCategoryClick('all')}
+                className={`cat-pill shrink-0 ${category === 'all' ? 'cat-pill-active' : 'cat-pill-inactive'}`}>
+                Все
+              </button>
+              {visibleCats.map((cat) => (
+                <button key={cat} type="button" onClick={() => handleCategoryClick(cat)}
+                  className={`cat-pill shrink-0 ${category === cat ? 'cat-pill-active' : 'cat-pill-inactive'}`}>
+                  {cat}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Hint */}
+          {!selectable && !query && (
+            <p className="text-[10px] text-center" style={{ color: 'var(--muted)' }}>
+              Зажмите карточку чтобы увидеть подробности
+            </p>
           )}
         </div>
 
-        {/* Food / Drinks + view toggle */}
-        {!query && (
-          <div className="flex gap-2 items-center">
-            <div className="flex flex-1 gap-1.5 p-1 rounded-2xl bg-[var(--surface-2)]">
-              <button
-                type="button"
-                onClick={() => { setSection('food'); setCategory('all') }}
-                className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${
-                  section === 'food'
-                    ? 'bg-[var(--accent)] text-[#0a0806] shadow-sm'
-                    : 'text-[var(--muted)]'
-                }`}
-              >
-                🍽 Кухня
-              </button>
-              <button
-                type="button"
-                onClick={() => { setSection('drinks'); setCategory('all') }}
-                className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${
-                  section === 'drinks'
-                    ? 'bg-[var(--accent)] text-[#0a0806] shadow-sm'
-                    : 'text-[var(--muted)]'
-                }`}
-              >
-                🍷 Бар
-              </button>
-            </div>
-
-            {/* Grid/list toggle */}
-            {!selectable && (
-              <button
-                type="button"
-                onClick={() => setViewMode(v => v === 'grid' ? 'list' : 'grid')}
-                className="w-10 h-10 flex items-center justify-center rounded-xl bg-[var(--surface-2)] text-[var(--muted)] shrink-0"
-              >
-                {viewMode === 'grid' ? (
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-4 h-4">
-                    <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" strokeLinecap="round"/>
-                  </svg>
-                ) : (
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-4 h-4">
-                    <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
-                    <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
-                  </svg>
-                )}
-              </button>
-            )}
+        {/* ── Results ── */}
+        {filtered.length === 0 ? (
+          <div className="flex flex-col items-center gap-4 py-16 text-center animate-fade-in">
+            <div className="text-5xl">🔍</div>
+            <p className="font-medium" style={{ color: 'var(--muted)' }}>Ничего не найдено</p>
+            <p className="text-xs" style={{ color: 'var(--muted)' }}>Попробуйте изменить запрос</p>
           </div>
-        )}
+        ) : (
+          [...filteredGrouped.entries()].map(([cat, items]) => (
+            <section key={cat} className="animate-fade-in">
+              {(query || category === 'all') && (
+                <div className="flex items-center gap-2 mb-3 mt-1">
+                  <h3 className="text-[11px] font-black uppercase tracking-widest" style={{ color: 'var(--accent)' }}>{cat}</h3>
+                  <div className="flex-1 h-px" style={{ background: 'var(--border)' }} />
+                  <span className="text-[10px]" style={{ color: 'var(--muted)' }}>{items.length}</span>
+                </div>
+              )}
 
-        {/* Category pills */}
-        {!query && (
-          <div className="flex gap-2 overflow-x-auto pb-0.5 scrollbar-hide">
-            <button
-              type="button"
-              onClick={() => handleCategoryClick('all')}
-              className={`cat-pill shrink-0 ${category === 'all' ? 'cat-pill-active' : 'cat-pill-inactive'}`}
-            >
-              Все
-            </button>
-            {visibleCats.map((cat) => (
-              <button
-                key={cat}
-                type="button"
-                onClick={() => handleCategoryClick(cat)}
-                className={`cat-pill shrink-0 ${category === cat ? 'cat-pill-active' : 'cat-pill-inactive'}`}
-              >
-                {cat}
-              </button>
-            ))}
-          </div>
+              {viewMode === 'grid' && !selectable ? (
+                <div className="grid grid-cols-2 gap-3">
+                  {items.map((item, idx) => <GridCard key={item.id} item={item} idx={idx} onDetail={setDetailItem} />)}
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {items.map((item, idx) => (
+                    <ListRow
+                      key={item.id}
+                      item={item}
+                      idx={idx}
+                      selectable={!!selectable}
+                      onDetail={setDetailItem}
+                      onPick={onPickItem}
+                    />
+                  ))}
+                </div>
+              )}
+            </section>
+          ))
         )}
       </div>
-
-      {/* Results */}
-      {filtered.length === 0 ? (
-        <div className="flex flex-col items-center gap-4 py-16 text-center animate-fade-in">
-          <div className="text-5xl">🔍</div>
-          <p className="text-[var(--muted)] font-medium">Ничего не найдено</p>
-          <p className="text-xs text-[var(--muted)]">Попробуйте изменить запрос</p>
-        </div>
-      ) : (
-        [...filteredGrouped.entries()].map(([cat, items]) => (
-          <section key={cat} className="animate-fade-in">
-            {(query || category === 'all') && (
-              <div className="flex items-center gap-2 mb-3">
-                <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--accent)]">{cat}</h3>
-                <div className="flex-1 h-px bg-[var(--border)]" />
-                <span className="text-[10px] text-[var(--muted)]">{items.length}</span>
-              </div>
-            )}
-
-            {viewMode === 'grid' && !selectable ? (
-              <div className="grid grid-cols-2 gap-3">
-                {items.map((item, idx) => renderGridCard(item, idx))}
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {items.map((item, idx) => renderListRow(item, idx))}
-              </div>
-            )}
-          </section>
-        ))
-      )}
-    </div>
+    </>
   )
+}
 
-  function renderGridCard(item: MenuItem, idx: number) {
-    const expanded = expandedId === item.id
-    const isDrink = DRINK_CATS.has(item.category)
+/* ─── Grid card ───────────────────────────────────── */
+function GridCard({ item, idx, onDetail }: { item: MenuItem; idx: number; onDetail: (i: MenuItem) => void }) {
+  const isDrink = DRINK_CATS.has(item.category)
+  const lp = useLongPress({ onLongPress: () => onDetail(item) })
 
-    return (
-      <div
-        key={item.id}
-        className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] overflow-hidden transition-all duration-200 active:scale-[0.97]"
-        style={{ animation: `fadeIn 0.3s ease-out ${Math.min(idx * 0.03, 0.3)}s both` }}
-        onClick={() => setExpandedId(expanded ? null : item.id)}
-      >
-        {/* Image */}
+  return (
+    <div
+      {...lp}
+      className="rounded-2xl overflow-hidden select-none"
+      style={{
+        background: 'var(--surface)',
+        border: '1px solid var(--border)',
+        animation: `fadeIn 0.3s ease-out ${Math.min(idx * 0.03, 0.3)}s both`,
+        cursor: 'pointer',
+        WebkitUserSelect: 'none',
+        userSelect: 'none',
+      }}
+      onClick={() => onDetail(item)}
+    >
+      {/* Photo */}
+      <div className="relative" style={{ aspectRatio: '4/3' }}>
         {item.image ? (
-          <img
-            src={item.image}
-            alt={item.name}
-            className="w-full aspect-[4/3] object-cover"
-            loading="lazy"
-          />
+          <>
+            <img src={item.image} alt={item.name} className="w-full h-full object-cover" loading="lazy" />
+            <div className="absolute inset-x-0 bottom-0 h-2/3"
+              style={{ background: 'linear-gradient(to top, rgba(10,8,6,0.85) 0%, transparent 100%)' }} />
+            <div className="absolute bottom-2.5 left-2.5 right-2.5">
+              <div
+                className="inline-block px-2 py-0.5 rounded-lg text-[11px] font-black"
+                style={{ background: isDrink ? 'rgba(60,120,200,0.85)' : 'rgba(212,165,116,0.95)', color: isDrink ? '#dff' : '#0a0806' }}
+              >
+                {item.price > 0 ? formatPrice(item.price) : '—'}
+              </div>
+            </div>
+          </>
         ) : (
-          <div className="w-full aspect-[4/3] flex items-center justify-center bg-[var(--surface-2)] text-3xl">
+          <div className="w-full h-full flex items-center justify-center text-4xl" style={{ background: 'var(--surface-2)' }}>
             {isDrink ? '🍷' : '🍽'}
           </div>
         )}
+      </div>
 
-        {/* Info */}
-        <div className="p-3">
-          <div className="text-sm font-semibold leading-snug text-[var(--text)] line-clamp-2">{item.name}</div>
-          <div className={`mt-1.5 text-sm font-bold ${isDrink ? 'text-[#9fc5e8]' : 'text-[var(--accent)]'}`}>
+      {/* Name */}
+      <div className="px-3 py-2.5">
+        <div className="text-[13px] font-semibold leading-snug line-clamp-2" style={{ color: 'var(--text)' }}>
+          {item.name}
+        </div>
+        {!item.image && (
+          <div className="mt-1 text-sm font-bold" style={{ color: isDrink ? '#9fc5e8' : 'var(--accent)' }}>
             {item.price > 0 ? formatPrice(item.price) : '—'}
           </div>
-
-          {expanded && (
-            <div className="mt-2 pt-2 border-t border-[var(--border)] space-y-1.5 animate-fade-fast">
-              {item.description && (
-                <p className="text-[11px] text-[var(--muted)] leading-relaxed">{item.description}</p>
-              )}
-              {item.allergens && (
-                <div className="rounded-lg bg-[rgba(201,162,39,0.1)] px-2 py-1.5">
-                  <span className="text-[10px] font-bold text-[var(--warning)] uppercase tracking-wider">⚠️ </span>
-                  <span className="text-[10px] text-[var(--muted)]">{item.allergens}</span>
-                </div>
-              )}
-            </div>
-          )}
-
-          {selectable && (
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); onPickItem?.(item) }}
-              className="mt-2 w-full btn btn-accent btn-sm"
-            >
-              + Добавить
-            </button>
-          )}
+        )}
+        <div className="mt-1.5 flex items-center gap-1" style={{ color: 'var(--muted)' }}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-3 h-3 shrink-0">
+            <circle cx="12" cy="12" r="10"/><path d="M12 8v4l2 2" strokeLinecap="round"/>
+          </svg>
+          <span className="text-[10px]">Удержите для деталей</span>
         </div>
       </div>
-    )
-  }
+    </div>
+  )
+}
 
-  function renderListRow(item: MenuItem, idx: number) {
-    const expanded = expandedId === item.id
-    const isDrink = DRINK_CATS.has(item.category)
+/* ─── List row ────────────────────────────────────── */
+function ListRow({
+  item, idx, selectable, onDetail, onPick,
+}: {
+  item: MenuItem
+  idx: number
+  selectable: boolean
+  onDetail: (i: MenuItem) => void
+  onPick?: (i: MenuItem) => void
+}) {
+  const isDrink = DRINK_CATS.has(item.category)
+  const lp = useLongPress({
+    onLongPress: () => onDetail(item),
+    onClick: selectable && onPick ? () => onPick(item) : () => onDetail(item),
+  })
 
-    return (
-      <div
-        key={item.id}
-        className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] overflow-hidden transition-all duration-200"
-        style={{ animation: `fadeIn 0.25s ease-out ${Math.min(idx * 0.025, 0.25)}s both` }}
-        onClick={selectable && onPickItem ? () => onPickItem(item) : () => setExpandedId(expanded ? null : item.id)}
-      >
-        <div className="flex items-center gap-3 p-3">
-          {/* Thumbnail */}
-          {item.image ? (
-            <img
-              src={item.image}
-              alt={item.name}
-              className="w-14 h-14 rounded-xl object-cover shrink-0"
-              loading="lazy"
-            />
-          ) : (
-            <div className="w-14 h-14 rounded-xl bg-[var(--surface-2)] flex items-center justify-center text-xl shrink-0">
-              {isDrink ? '🍷' : '🍽'}
-            </div>
-          )}
-
-          {/* Text */}
-          <div className="min-w-0 flex-1">
-            <div className="text-sm font-semibold leading-snug">{item.name}</div>
-            {!selectable && (
-              <div className="text-[11px] text-[var(--muted)] mt-0.5 truncate">{item.category}</div>
-            )}
-          </div>
-
-          {/* Price + action */}
-          <div className="shrink-0 text-right">
-            <div className={`text-sm font-bold ${isDrink ? 'text-[#9fc5e8]' : 'text-[var(--accent)]'}`}>
-              {item.price > 0 ? formatPrice(item.price) : '—'}
-            </div>
-            {selectable ? (
-              <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); onPickItem?.(item) }}
-                className="mt-1 btn btn-accent btn-sm px-3"
-              >
-                +
-              </button>
-            ) : (
-              <div className={`mt-0.5 text-[10px] transition-transform duration-200 text-[var(--muted)] ${expanded ? 'rotate-180' : ''}`}>
-                ▾
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Expanded details */}
-        {expanded && !selectable && (
-          <div className="px-3 pb-3 pt-0 space-y-2 border-t border-[var(--border)] animate-fade-fast">
-            {item.description && (
-              <p className="text-xs text-[var(--muted)] leading-relaxed pt-2">{item.description}</p>
-            )}
-            {item.composition && (
-              <div>
-                <div className="text-[10px] font-bold uppercase tracking-widest text-[var(--accent)] mb-1">Состав</div>
-                <p className="text-xs text-[var(--muted)] leading-relaxed">{item.composition}</p>
-              </div>
-            )}
-            {item.allergens && (
-              <div className="rounded-xl bg-[rgba(201,162,39,0.08)] px-3 py-2 border border-[rgba(201,162,39,0.15)]">
-                <div className="text-[10px] font-bold uppercase tracking-widest text-[var(--warning)] mb-0.5">⚠️ Аллергены</div>
-                <p className="text-xs text-[var(--muted)]">{item.allergens}</p>
-              </div>
-            )}
+  return (
+    <div
+      {...lp}
+      className="rounded-2xl overflow-hidden flex items-center gap-3 select-none"
+      style={{
+        background: 'var(--surface)',
+        border: '1px solid var(--border)',
+        padding: '10px 12px',
+        animation: `fadeIn 0.25s ease-out ${Math.min(idx * 0.025, 0.25)}s both`,
+        cursor: 'pointer',
+        WebkitUserSelect: 'none',
+        userSelect: 'none',
+      }}
+    >
+      {/* Thumbnail */}
+      <div className="shrink-0 rounded-xl overflow-hidden" style={{ width: 60, height: 60 }}>
+        {item.image ? (
+          <img src={item.image} alt={item.name} className="w-full h-full object-cover" loading="lazy" />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-2xl" style={{ background: 'var(--surface-2)' }}>
+            {isDrink ? '🍷' : '🍽'}
           </div>
         )}
       </div>
-    )
-  }
+
+      {/* Text */}
+      <div className="min-w-0 flex-1">
+        <div className="text-sm font-semibold leading-snug" style={{ color: 'var(--text)' }}>{item.name}</div>
+        <div className="text-[11px] mt-0.5 truncate" style={{ color: 'var(--muted)' }}>{item.category}</div>
+      </div>
+
+      {/* Price + action */}
+      <div className="shrink-0 text-right">
+        <div className="text-sm font-black" style={{ color: isDrink ? '#9fc5e8' : 'var(--accent)' }}>
+          {item.price > 0 ? formatPrice(item.price) : '—'}
+        </div>
+        {selectable ? (
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onPick?.(item) }}
+            className="mt-1.5 w-8 h-8 flex items-center justify-center rounded-xl font-bold text-lg"
+            style={{ background: 'var(--accent)', color: '#0a0806' }}
+          >+</button>
+        ) : (
+          <div className="mt-1 text-[10px]" style={{ color: 'var(--muted)' }}>удержи</div>
+        )}
+      </div>
+    </div>
+  )
 }
 
 export { menu }
