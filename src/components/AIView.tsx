@@ -20,12 +20,39 @@ ${menu
   )
   .join('\n')}
 
-Отвечай кратко и по делу на русском языке. Помогай с вопросами о составе блюд, аллергенах, вине к блюдам, рекомендациях.`
+ВАЖНЫЕ ПРАВИЛА ОТВЕТОВ:
+- Отвечай кратко и по делу на русском языке
+- НЕ используй таблицы Markdown (без символов | и —— в таблицах)
+- НЕ используй заголовки Markdown (без ## и ###)
+- Используй нумерованные или маркированные списки вместо таблиц
+- Можно использовать жирный текст **текст** и эмодзи
+- Максимум 5-7 позиций в списке если не просят больше
+- Помогай с вопросами о составе блюд, аллергенах, вине к блюдам, рекомендациях
+- Никаких рекламных ссылок и упоминаний внешних сервисов`
+
+function stripPollinationsAd(text: string): string {
+  const adMarkers = [
+    '\n\n---\n\n**Support Pollinations',
+    '\n---\n\n**Support Pollinations',
+    '\n\n---\n\nPowered by Pollinations',
+    '\nPowered by Pollinations',
+    '\n🌸 **Ad**',
+    '\n\n🌸',
+  ]
+  let result = text
+  for (const marker of adMarkers) {
+    const idx = result.indexOf(marker)
+    if (idx !== -1) {
+      result = result.slice(0, idx)
+    }
+  }
+  return result.trim()
+}
 
 async function askAI(messages: Array<{ role: string; content: string }>): Promise<string> {
   const payload = {
     messages: [{ role: 'system', content: SYSTEM_PROMPT }, ...messages],
-    model: 'openai',
+    model: 'openai-fast',
     seed: Math.floor(Math.random() * 10000),
   }
 
@@ -36,7 +63,8 @@ async function askAI(messages: Array<{ role: string; content: string }>): Promis
   })
 
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return await res.text()
+  const raw = await res.text()
+  return stripPollinationsAd(raw)
 }
 
 const QUICK_PROMPTS = [
@@ -141,6 +169,25 @@ export function AIView() {
     }
   }
 
+  function renderMessage(content: string) {
+    const lines = content.split('\n')
+    return lines.map((line, i) => {
+      const parts = line.split(/(\*\*[^*]+\*\*)/)
+      return (
+        <span key={i}>
+          {parts.map((part, j) =>
+            part.startsWith('**') && part.endsWith('**') ? (
+              <strong key={j}>{part.slice(2, -2)}</strong>
+            ) : (
+              part
+            ),
+          )}
+          {i < lines.length - 1 && <br />}
+        </span>
+      )
+    })
+  }
+
   return (
     <div className="flex h-full flex-col">
       {/* Offline notice */}
@@ -181,7 +228,7 @@ export function AIView() {
                 </div>
               ) : (
                 <>
-                  <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+                  <p className="whitespace-pre-wrap leading-relaxed">{renderMessage(msg.content)}</p>
                   {msg.image && (
                     <img src={msg.image} alt="AI generated" className="mt-3 w-full rounded-xl" />
                   )}
@@ -276,9 +323,6 @@ export function AIView() {
           </svg>
         </button>
       </div>
-      <p className="mt-2 text-center text-[10px] text-[var(--muted)]">
-        AI работает бесплатно через Pollinations.ai
-      </p>
     </div>
   )
 }

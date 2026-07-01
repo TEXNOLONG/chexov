@@ -18,6 +18,7 @@ export interface OrderItem {
   price: number
   quantity: number
   note?: string
+  volume?: number
   served: boolean
 }
 

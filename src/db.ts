@@ -23,7 +23,11 @@ class ChexovDB extends Dexie {
 export const db = new ChexovDB()
 
 export async function getActiveOrderForTable(tableNumber: number): Promise<Order | undefined> {
-  return db.orders.where({ tableNumber, status: 'active' }).first()
+  return db.orders
+    .where('tableNumber')
+    .equals(tableNumber)
+    .filter((o) => o.status === 'active' || o.status === 'served')
+    .first()
 }
 
 export async function saveOrder(order: Order): Promise<void> {

@@ -12,9 +12,60 @@ interface Props {
   onChanged: () => void
 }
 
+const GUEST_COUNTS = [1, 2, 3, 4, 5, 6, 7, 8]
+
+const DONENESS_OPTIONS = [
+  { label: 'Rare', sub: 'С кровью' },
+  { label: 'Medium Rare', sub: 'Слабая' },
+  { label: 'Medium', sub: 'Средняя' },
+  { label: 'Medium Well', sub: 'Сильная' },
+  { label: 'Well Done', sub: 'Прожаренный' },
+]
+
+const FISH_POULTRY_KEYWORDS = ['тунец', 'лосось', 'сом', 'индейк', 'форел', 'рыб']
+
+const DRINK_CATEGORIES = new Set([
+  'Авторская коктейльная карта', 'Авторские настойки', 'Авторские чаи',
+  'Белые вина', 'Виски', 'Водка', 'Игристые вина', 'Коньяк/Бренди',
+  'Кофе', 'Красные вина', 'Крепкие напитки', 'Ликёры', 'Лимонады',
+  'Пенное импорт', 'Пиво на кране', 'Розовые вина', 'Русский крафт',
+  'Свежевыжатые соки', 'Соки/Вода', 'Спецпредложение Бар',
+  'Твист на классику', 'Чаи',
+])
+
+function isBeefSteak(item: MenuItem): boolean {
+  if (item.category !== 'Стейки') return false
+  const name = item.name.toLowerCase()
+  return !FISH_POULTRY_KEYWORDS.some((k) => name.includes(k))
+}
+
+function isDrink(item: MenuItem): boolean {
+  return DRINK_CATEGORIES.has(item.category)
+}
+
+function getVolumePresets(category: string): number[] {
+  if (['Пиво на кране', 'Пенное импорт', 'Русский крафт'].includes(category)) return [300, 500]
+  if (['Белые вина', 'Красные вина', 'Розовые вина', 'Игристые вина'].includes(category)) return [125, 150, 750]
+  if (['Виски', 'Коньяк/Бренди', 'Водка', 'Ликёры', 'Крепкие напитки'].includes(category)) return [40, 50, 100]
+  if (['Авторские настойки'].includes(category)) return [50]
+  if (['Авторская коктейльная карта', 'Твист на классику', 'Спецпредложение Бар'].includes(category)) return [200, 250, 350, 400]
+  if (['Кофе'].includes(category)) return [30, 60, 150, 200, 250, 280]
+  if (['Чаи', 'Авторские чаи'].includes(category)) return [300, 500, 1000]
+  if (['Лимонады'].includes(category)) return [400, 1000]
+  if (['Свежевыжатые соки'].includes(category)) return [200]
+  if (['Соки/Вода'].includes(category)) return [200, 330, 500]
+  return [100, 200, 300, 500]
+}
+
 export function OrderPanel({ tableNumber, order, onClose, onChanged }: Props) {
   const [showMenu, setShowMenu] = useState(false)
   const [note, setNote] = useState(order?.note ?? '')
+  const [guestCount, setGuestCount] = useState<number | undefined>(order?.guestCount)
+  const [showGuestPicker, setShowGuestPicker] = useState(!order)
+
+  const [pendingItem, setPendingItem] = useState<MenuItem | null>(null)
+  const [selectedDoneness, setSelectedDoneness] = useState('')
+  const [selectedVolume, setSelectedVolume] = useState<number | null>(null)
 
   const items = order?.items ?? []
   const total = useMemo(() => orderTotal(items), [items])
@@ -28,25 +79,53 @@ export function OrderPanel({ tableNumber, order, onClose, onChanged }: Props) {
     const now = Date.now()
     const created: Order = {
       id: uuid(), tableNumber, status: 'active', items: [],
-      createdAt: now, updatedAt: now,
+      guestCount, createdAt: now, updatedAt: now,
     }
     await saveOrder(created)
     onChanged()
     return created
   }
 
-  async function addItem(menuItem: MenuItem) {
+  async function addItem(menuItem: MenuItem, opts: { note?: string; volume?: number } = {}) {
     const current = await ensureOrder()
-    const existing = current.items.find((i) => i.menuItemId === menuItem.id)
+    const newItem: OrderItem = {
+      id: uuid(), menuItemId: menuItem.id, name: menuItem.name,
+      price: menuItem.price, quantity: 1, served: false,
+      note: opts.note || undefined,
+      volume: opts.volume || undefined,
+    }
+    const existing = current.items.find(
+      (i) => i.menuItemId === menuItem.id && i.note === newItem.note && i.volume === newItem.volume
+    )
     const nextItems = existing
-      ? current.items.map((i) => i.menuItemId === menuItem.id ? { ...i, quantity: i.quantity + 1 } : i)
-      : [...current.items, {
-          id: uuid(), menuItemId: menuItem.id, name: menuItem.name,
-          price: menuItem.price, quantity: 1, served: false,
-        } satisfies OrderItem]
+      ? current.items.map((i) =>
+          i.id === existing.id ? { ...i, quantity: i.quantity + 1 } : i
+        )
+      : [...current.items, newItem]
     await saveOrder({ ...current, items: nextItems, note, updatedAt: Date.now() })
     onChanged()
     setShowMenu(false)
+  }
+
+  function handlePickItem(menuItem: MenuItem) {
+    const needsDoneness = isBeefSteak(menuItem)
+    const needsVolume = isDrink(menuItem)
+    if (needsDoneness || needsVolume) {
+      setPendingItem(menuItem)
+      setSelectedDoneness('')
+      setSelectedVolume(null)
+    } else {
+      addItem(menuItem)
+    }
+  }
+
+  async function confirmPendingItem() {
+    if (!pendingItem) return
+    await addItem(pendingItem, {
+      note: selectedDoneness || undefined,
+      volume: selectedVolume ?? undefined,
+    })
+    setPendingItem(null)
   }
 
   async function updateItems(nextItems: OrderItem[]) {
@@ -98,6 +177,15 @@ export function OrderPanel({ tableNumber, order, onClose, onChanged }: Props) {
     onChanged()
   }
 
+  async function confirmGuestCount(count: number) {
+    setGuestCount(count)
+    setShowGuestPicker(false)
+    if (order) {
+      await saveOrder({ ...order, guestCount: count, updatedAt: Date.now() })
+      onChanged()
+    }
+  }
+
   const statusLabel = order?.status === 'served' ? 'На оплате' : order?.status === 'paid' ? 'Оплачен' : 'Активен'
   const statusCls = order?.status === 'served' ? 'badge-served' : order?.status === 'paid' ? 'badge-paid' : 'badge-active'
 
@@ -126,6 +214,11 @@ export function OrderPanel({ tableNumber, order, onClose, onChanged }: Props) {
             <div className="flex items-center gap-2 flex-wrap">
               <div className="text-base font-black">Стол {tableNumber}</div>
               {order && <span className={`badge ${statusCls}`}>{statusLabel}</span>}
+              {guestCount && (
+                <span className="badge badge-active">
+                  👤 {guestCount}
+                </span>
+              )}
             </div>
           )}
         </div>
@@ -151,7 +244,7 @@ export function OrderPanel({ tableNumber, order, onClose, onChanged }: Props) {
       {/* ── Body ── */}
       <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-4">
         {showMenu ? (
-          <MenuView selectable onPickItem={addItem} />
+          <MenuView selectable onPickItem={handlePickItem} />
         ) : (
           <div className="space-y-3 pb-36">
             {/* Empty state */}
@@ -211,10 +304,16 @@ export function OrderPanel({ tableNumber, order, onClose, onChanged }: Props) {
                       }`}>
                         {item.name}
                       </div>
-                      <div className="text-xs text-[var(--muted)] mt-0.5">
-                        {formatPrice(item.price)} × {item.quantity}
-                        {' = '}
-                        <span className="font-semibold text-[var(--text-2)]">{formatPrice(item.price * item.quantity)}</span>
+                      <div className="text-xs text-[var(--muted)] mt-0.5 flex flex-wrap gap-x-1.5 items-center">
+                        {item.volume && (
+                          <span className="text-[var(--accent)] font-semibold">{item.volume}мл</span>
+                        )}
+                        {item.note && (
+                          <span className="text-[#c4a35a] font-medium">{item.note}</span>
+                        )}
+                        {(item.volume || item.note) && <span>·</span>}
+                        <span>{formatPrice(item.price)} × {item.quantity}</span>
+                        <span>= <span className="font-semibold text-[var(--text-2)]">{formatPrice(item.price * item.quantity)}</span></span>
                       </div>
                     </div>
 
@@ -267,7 +366,6 @@ export function OrderPanel({ tableNumber, order, onClose, onChanged }: Props) {
           style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
         >
           <div className="mx-auto max-w-3xl space-y-2">
-            {/* Total */}
             {items.length > 0 && (
               <div className="flex items-center justify-between px-1 mb-1">
                 <span className="text-xs text-[var(--muted)]">Итого по заказу</span>
@@ -275,7 +373,6 @@ export function OrderPanel({ tableNumber, order, onClose, onChanged }: Props) {
               </div>
             )}
 
-            {/* Action buttons */}
             <div className="flex gap-2">
               <button
                 type="button"
@@ -319,6 +416,120 @@ export function OrderPanel({ tableNumber, order, onClose, onChanged }: Props) {
             </div>
           </div>
         </footer>
+      )}
+
+      {/* ── Guest Count Picker ── */}
+      {showGuestPicker && !showMenu && (
+        <div className="fixed inset-0 z-60 flex items-end" style={{ background: 'rgba(0,0,0,0.6)' }}>
+          <div
+            className="w-full rounded-t-3xl border-t border-[var(--border)] px-5 pt-5 pb-8 animate-slide-up"
+            style={{ background: 'var(--surface)' }}
+          >
+            <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-[var(--border)]" />
+            <p className="text-base font-bold mb-1">Стол {tableNumber}</p>
+            <p className="text-sm text-[var(--muted)] mb-4">Сколько гостей?</p>
+            <div className="grid grid-cols-4 gap-2 mb-4">
+              {GUEST_COUNTS.map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => confirmGuestCount(n)}
+                  className={`rounded-2xl py-3 text-lg font-bold transition active:scale-95 ${
+                    guestCount === n
+                      ? 'bg-[var(--accent)] text-[#0f0c09]'
+                      : 'bg-[var(--surface-2)] text-[var(--text)]'
+                  }`}
+                >
+                  {n}
+                </button>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowGuestPicker(false)}
+              className="w-full rounded-2xl border border-[var(--border)] py-3 text-sm text-[var(--muted)] active:opacity-70"
+            >
+              Пропустить
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Item Options Modal (doneness / volume) ── */}
+      {pendingItem && (
+        <div className="fixed inset-0 z-60 flex items-end" style={{ background: 'rgba(0,0,0,0.6)' }}>
+          <div
+            className="w-full rounded-t-3xl border-t border-[var(--border)] px-5 pt-5 pb-8 animate-slide-up"
+            style={{ background: 'var(--surface)' }}
+          >
+            <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-[var(--border)]" />
+            <p className="text-sm font-black mb-1 text-[var(--accent)]">{pendingItem.name}</p>
+
+            {/* Doneness (beef steaks) */}
+            {isBeefSteak(pendingItem) && (
+              <div className="mb-4">
+                <p className="text-xs text-[var(--muted)] uppercase tracking-widest mb-2 font-semibold">Степень прожарки</p>
+                <div className="grid grid-cols-5 gap-1.5">
+                  {DONENESS_OPTIONS.map((d) => (
+                    <button
+                      key={d.label}
+                      type="button"
+                      onClick={() => setSelectedDoneness(d.label)}
+                      className={`rounded-xl py-2 px-1 text-center transition active:scale-95 ${
+                        selectedDoneness === d.label
+                          ? 'bg-[var(--accent)] text-[#0f0c09]'
+                          : 'bg-[var(--surface-2)] text-[var(--text)]'
+                      }`}
+                    >
+                      <div className="text-[10px] font-bold leading-tight">{d.label}</div>
+                      <div className="text-[9px] opacity-70 leading-tight mt-0.5">{d.sub}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Volume (drinks) */}
+            {isDrink(pendingItem) && (
+              <div className="mb-4">
+                <p className="text-xs text-[var(--muted)] uppercase tracking-widest mb-2 font-semibold">Объём</p>
+                <div className="flex flex-wrap gap-2">
+                  {getVolumePresets(pendingItem.category).map((v) => (
+                    <button
+                      key={v}
+                      type="button"
+                      onClick={() => setSelectedVolume(v)}
+                      className={`rounded-xl px-4 py-2 text-sm font-bold transition active:scale-95 ${
+                        selectedVolume === v
+                          ? 'bg-[var(--accent)] text-[#0f0c09]'
+                          : 'bg-[var(--surface-2)] text-[var(--text)]'
+                      }`}
+                    >
+                      {v}мл
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="flex gap-2 mt-2">
+              <button
+                type="button"
+                onClick={() => setPendingItem(null)}
+                className="flex-1 rounded-2xl border border-[var(--border)] py-3 text-sm text-[var(--muted)] active:opacity-70"
+              >
+                Отмена
+              </button>
+              <button
+                type="button"
+                onClick={confirmPendingItem}
+                className="flex-1 rounded-2xl py-3 text-sm font-bold transition active:scale-95 bg-[var(--accent)] text-[#0f0c09]"
+              >
+                Добавить в заказ
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
