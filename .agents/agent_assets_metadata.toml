@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "mhXSQjxn3x5KV8KVKOV63"
+uri = "file://chexov-orders-apk.zip"
+type = "unspecified"
+title = "Чехов Заказы — Android APK (разархивируйте и установите)"
