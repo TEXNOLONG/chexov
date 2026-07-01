@@ -10,70 +10,45 @@ interface Message {
   loading?: boolean
 }
 
-const SYSTEM_PROMPT = `Ты — AI-ассистент ресторана Гастропаб Чехов в Ярославле. Ты помогаешь официантам и гостям.
+const SYSTEM_PROMPT = `Ты — AI-ассистент ресторана Гастропаб Чехов в Ярославле. Ты помогаешь официантам.
 Ты знаешь полное меню ресторана:
 
 ${menu
   .map(
     (item) =>
-      `${item.name} (${item.category}) — ${item.price > 0 ? formatPrice(item.price) : 'цена не указана'}${item.description ? ': ' + item.description.slice(0, 120) : ''}${item.allergens ? ` [Аллергены: ${item.allergens}]` : ''}`,
+      `${item.name} (${item.category}) — ${item.price > 0 ? formatPrice(item.price) : 'цена не указана'}${item.description ? ': ' + item.description.slice(0, 100) : ''}${item.allergens ? ` [Аллергены: ${item.allergens}]` : ''}`,
   )
   .join('\n')}
 
-ВАЖНЫЕ ПРАВИЛА ОТВЕТОВ:
-- Отвечай кратко и по делу на русском языке
-- НЕ используй таблицы Markdown (без символов | и —— в таблицах)
-- НЕ используй заголовки Markdown (без ## и ###)
-- Используй нумерованные или маркированные списки вместо таблиц
-- Можно использовать жирный текст **текст** и эмодзи
-- Максимум 5-7 позиций в списке если не просят больше
-- Помогай с вопросами о составе блюд, аллергенах, вине к блюдам, рекомендациях
-- Никаких рекламных ссылок и упоминаний внешних сервисов`
-
-function stripPollinationsAd(text: string): string {
-  const adMarkers = [
-    '\n\n---\n\n**Support Pollinations',
-    '\n---\n\n**Support Pollinations',
-    '\n\n---\n\nPowered by Pollinations',
-    '\nPowered by Pollinations',
-    '\n🌸 **Ad**',
-    '\n\n🌸',
-  ]
-  let result = text
-  for (const marker of adMarkers) {
-    const idx = result.indexOf(marker)
-    if (idx !== -1) {
-      result = result.slice(0, idx)
-    }
-  }
-  return result.trim()
-}
+ПРАВИЛА:
+- Отвечай кратко, по-русски, разговорным языком
+- НЕ используй таблицы Markdown (без |)
+- НЕ используй заголовки ## или ###
+- Используй нумерованные списки или маркеры •
+- Используй жирный **текст** и эмодзи
+- Максимум 5-7 позиций в списке
+- Помогай с составом блюд, аллергенами, подбором вина`
 
 async function askAI(messages: Array<{ role: string; content: string }>): Promise<string> {
-  const payload = {
-    messages: [{ role: 'system', content: SYSTEM_PROMPT }, ...messages],
-    model: 'openai-fast',
-    seed: Math.floor(Math.random() * 10000),
-  }
-
-  const res = await fetch('https://text.pollinations.ai/', {
+  const res = await fetch('/api/chat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
+    body: JSON.stringify({
+      messages: [{ role: 'system', content: SYSTEM_PROMPT }, ...messages],
+    }),
   })
-
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  const raw = await res.text()
-  return stripPollinationsAd(raw)
+  const data = await res.json()
+  return data.content ?? ''
 }
 
 const QUICK_PROMPTS = [
-  '🍷 Что посоветуешь к стейку?',
-  '🥗 Безглютеновые блюда',
+  '🍷 Что к стейку?',
+  '🥗 Без глютена',
   '🍺 Что на кране?',
-  '🧑‍🍳 Топ-5 блюд ресторана',
-  '🌿 Блюда без лактозы',
-  '🍸 Безалкогольные коктейли',
+  '🧑‍🍳 Топ-5 блюд',
+  '🌿 Без лактозы',
+  '🍸 Безалкогольные',
 ]
 
 export function AIView() {
@@ -81,14 +56,11 @@ export function AIView() {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
-      content:
-        'Привет! Я AI-ассистент Гастропаб Чехов 🍽️\n\nМогу помочь с:\n• Составом и аллергенами блюд\n• Рекомендациями вина к блюдам\n• Описанием позиций меню\n• Ответами на любые вопросы о ресторане',
+      content: 'Привет! Я знаю всё меню Чехова 🍽️\n\nМогу помочь с:\n• Составом и аллергенами\n• Вином к блюдам\n• Рекомендациями',
     },
   ])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
-  const [imagePrompt, setImagePrompt] = useState('')
-  const [showImageGen, setShowImageGen] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
@@ -97,16 +69,12 @@ export function AIView() {
   }, [messages])
 
   async function sendMessage(text: string) {
-    if (!text.trim() || loading) return
-    if (!online) return
-
+    if (!text.trim() || loading || !online) return
     const userMsg: Message = { role: 'user', content: text.trim() }
     const loadingMsg: Message = { role: 'assistant', content: '', loading: true }
-
     setMessages((prev) => [...prev, userMsg, loadingMsg])
     setInput('')
     setLoading(true)
-
     try {
       const history = [...messages, userMsg].map((m) => ({ role: m.role, content: m.content }))
       const answer = await askAI(history)
@@ -114,48 +82,7 @@ export function AIView() {
     } catch {
       setMessages((prev) => [
         ...prev.slice(0, -1),
-        {
-          role: 'assistant',
-          content: '⚠️ Ошибка соединения. Проверьте интернет и попробуйте снова.',
-        },
-      ])
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  async function generateImage() {
-    if (!imagePrompt.trim() || loading || !online) return
-    const prompt = imagePrompt.trim()
-    const userMsg: Message = { role: 'user', content: `🖼️ Сгенерируй картинку: ${prompt}` }
-    const loadingMsg: Message = { role: 'assistant', content: '', loading: true }
-    setMessages((prev) => [...prev, userMsg, loadingMsg])
-    setImagePrompt('')
-    setShowImageGen(false)
-    setLoading(true)
-
-    try {
-      const encoded = encodeURIComponent(
-        `${prompt}, restaurant food photography, professional, warm lighting`,
-      )
-      const url = `https://image.pollinations.ai/prompt/${encoded}?width=512&height=512&nologo=true&seed=${Date.now()}`
-      await new Promise<void>((resolve, reject) => {
-        const img = new Image()
-        img.onload = () => resolve()
-        img.onerror = () => reject(new Error('Image failed'))
-        img.src = url
-      })
-      setMessages((prev) => [
-        ...prev.slice(0, -1),
-        { role: 'assistant', content: `Вот изображение: **${prompt}**`, image: url },
-      ])
-    } catch {
-      setMessages((prev) => [
-        ...prev.slice(0, -1),
-        {
-          role: 'assistant',
-          content: '⚠️ Не удалось сгенерировать изображение. Попробуйте снова.',
-        },
+        { role: 'assistant', content: '⚠️ Ошибка соединения. Проверьте интернет.' },
       ])
     } finally {
       setLoading(false)
@@ -169,70 +96,58 @@ export function AIView() {
     }
   }
 
-  function renderMessage(content: string) {
-    const lines = content.split('\n')
-    return lines.map((line, i) => {
+  function renderContent(content: string) {
+    return content.split('\n').map((line, i, arr) => {
       const parts = line.split(/(\*\*[^*]+\*\*)/)
       return (
         <span key={i}>
-          {parts.map((part, j) =>
-            part.startsWith('**') && part.endsWith('**') ? (
-              <strong key={j}>{part.slice(2, -2)}</strong>
-            ) : (
-              part
-            ),
+          {parts.map((p, j) =>
+            p.startsWith('**') && p.endsWith('**')
+              ? <strong key={j}>{p.slice(2, -2)}</strong>
+              : p
           )}
-          {i < lines.length - 1 && <br />}
+          {i < arr.length - 1 && <br />}
         </span>
       )
     })
   }
 
   return (
-    <div className="flex h-full flex-col">
-      {/* Offline notice */}
+    <div className="flex h-full flex-col gap-3">
       {!online && (
-        <div className="mb-3 flex items-center gap-2 rounded-2xl border border-[#5a2828] bg-[#3a1e1e] px-4 py-3 text-sm text-[#ffb4b4] animate-fade-in">
-          <span className="text-lg">📵</span>
-          <div>
-            <div className="font-semibold">Офлайн режим</div>
-            <div className="text-xs opacity-80">AI-чат требует подключения к интернету. Меню и заказы доступны офлайн.</div>
-          </div>
+        <div className="rounded-2xl px-4 py-3 text-sm" style={{ background: 'var(--danger-soft)', color: 'var(--danger)' }}>
+          📵 <strong>Офлайн</strong> — AI требует интернет
         </div>
       )}
 
       {/* Messages */}
-      <div className="flex-1 space-y-3 overflow-y-auto pb-4">
+      <div className="flex-1 space-y-3 overflow-y-auto">
         {messages.map((msg, i) => (
-          <div
-            key={i}
-            className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in`}
-          >
+          <div key={i} className={`flex gap-2 ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in`}>
             {msg.role === 'assistant' && (
-              <div className="mr-2 mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--accent-soft)] text-sm">
-                🤖
+              <div
+                className="shrink-0 mt-1 w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold"
+                style={{ background: 'var(--accent)', color: '#000' }}
+              >
+                AI
               </div>
             )}
             <div
-              className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm ${
+              className="max-w-[84%] rounded-2xl px-4 py-3 text-sm leading-relaxed"
+              style={
                 msg.role === 'user'
-                  ? 'rounded-tr-sm bg-[var(--accent)] text-[#0f0c09] font-medium'
-                  : 'rounded-tl-sm bg-[var(--surface-2)] text-[var(--text)]'
-              }`}
+                  ? { background: 'var(--accent)', color: '#000', fontWeight: 600, borderRadius: '20px 20px 6px 20px' }
+                  : { background: 'var(--surface)', color: 'var(--text)', borderRadius: '6px 20px 20px 20px' }
+              }
             >
               {msg.loading ? (
-                <div className="flex items-center gap-1 py-1">
-                  <span className="typing-dot h-2 w-2 rounded-full bg-[var(--muted)]" />
-                  <span className="typing-dot h-2 w-2 rounded-full bg-[var(--muted)]" />
-                  <span className="typing-dot h-2 w-2 rounded-full bg-[var(--muted)]" />
+                <div className="flex items-center gap-1.5 py-0.5">
+                  <span className="typing-dot w-2 h-2 rounded-full bg-[var(--muted)]" />
+                  <span className="typing-dot w-2 h-2 rounded-full bg-[var(--muted)]" />
+                  <span className="typing-dot w-2 h-2 rounded-full bg-[var(--muted)]" />
                 </div>
               ) : (
-                <>
-                  <p className="whitespace-pre-wrap leading-relaxed">{renderMessage(msg.content)}</p>
-                  {msg.image && (
-                    <img src={msg.image} alt="AI generated" className="mt-3 w-full rounded-xl" />
-                  )}
-                </>
+                <p className="whitespace-pre-wrap">{renderContent(msg.content)}</p>
               )}
             </div>
           </div>
@@ -242,13 +157,14 @@ export function AIView() {
 
       {/* Quick prompts */}
       {messages.length <= 2 && online && (
-        <div className="mb-3 flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2">
           {QUICK_PROMPTS.map((p) => (
             <button
               key={p}
               type="button"
               onClick={() => sendMessage(p)}
-              className="rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-xs text-[var(--muted)] transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
+              className="rounded-full px-3 py-1.5 text-xs font-medium transition active:opacity-70"
+              style={{ background: 'var(--surface-2)', color: 'var(--text-2)' }}
             >
               {p}
             </button>
@@ -256,73 +172,38 @@ export function AIView() {
         </div>
       )}
 
-      {/* Image generation panel */}
-      {showImageGen && online && (
-        <div className="mb-3 flex gap-2 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-3 animate-slide-up">
-          <input
-            value={imagePrompt}
-            onChange={(e) => setImagePrompt(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && generateImage()}
-            placeholder="Опиши блюдо для генерации..."
-            className="flex-1 bg-transparent text-sm outline-none placeholder:text-[var(--muted)]"
-            autoFocus
-          />
-          <button
-            type="button"
-            onClick={generateImage}
-            disabled={!imagePrompt.trim() || loading}
-            className="rounded-xl bg-[var(--accent)] px-3 py-1 text-xs font-semibold text-[#0f0c09] disabled:opacity-40"
-          >
-            Создать
-          </button>
-          <button
-            type="button"
-            onClick={() => setShowImageGen(false)}
-            className="text-[var(--muted)]"
-          >
-            ✕
-          </button>
-        </div>
-      )}
-
-      {/* Input */}
+      {/* Input bar */}
       <div
-        className={`flex items-end gap-2 rounded-2xl border px-3 py-2 transition ${
-          online ? 'border-[var(--border)] bg-[var(--surface)]' : 'border-[#5a2828] bg-[#2a1414] opacity-60'
-        }`}
+        className="flex items-end gap-2 rounded-2xl px-3 py-2"
+        style={{ background: 'var(--surface)' }}
       >
-        {online && (
-          <button
-            type="button"
-            onClick={() => setShowImageGen((v) => !v)}
-            title="Сгенерировать изображение"
-            className="mb-1 shrink-0 text-lg text-[var(--muted)] transition hover:text-[var(--accent)]"
-          >
-            🖼️
-          </button>
-        )}
         <textarea
           ref={inputRef}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder={online ? 'Спросите что угодно...' : 'Нет соединения...'}
+          placeholder={online ? 'Спросите что угодно…' : 'Нет соединения…'}
           disabled={!online || loading}
           rows={1}
           className="flex-1 resize-none bg-transparent py-1 text-sm outline-none placeholder:text-[var(--muted)] disabled:cursor-not-allowed"
-          style={{ maxHeight: '120px' }}
+          style={{ maxHeight: '120px', color: 'var(--text)' }}
         />
         <button
           type="button"
           onClick={() => sendMessage(input)}
           disabled={!input.trim() || loading || !online}
-          className="mb-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-[#0f0c09] transition disabled:opacity-40"
+          className="mb-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition disabled:opacity-30"
+          style={{ background: 'var(--accent)', color: '#000' }}
         >
           <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
             <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
           </svg>
         </button>
       </div>
+
+      <p className="text-center text-[10px]" style={{ color: 'var(--muted)' }}>
+        Groq · llama-3.3-70b
+      </p>
     </div>
   )
 }

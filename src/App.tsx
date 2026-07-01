@@ -71,23 +71,16 @@ function App() {
           {/* Logo + title */}
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2.5 mb-0.5">
-              {/* Logo mark */}
               <div
                 className="w-7 h-7 rounded-xl shrink-0 flex items-center justify-center"
-                style={{
-                  background: 'linear-gradient(145deg, #ffc107 0%, #f5b400 100%)',
-                  boxShadow: '0 0 14px rgba(245,180,0,0.35), 3px 3px 8px #080808',
-                }}
+                style={{ background: 'var(--accent)' }}
               >
-                <svg viewBox="0 0 24 24" fill="none" stroke="#0d0d0d" strokeWidth={2.4} className="w-4 h-4">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth={2.2} className="w-4 h-4">
                   <path d="M3 11l7-7 4 4 7-7" strokeLinecap="round" strokeLinejoin="round"/>
                   <path d="M21 11v10H3V11" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               </div>
-              <span
-                className="text-[10px] font-black uppercase tracking-[0.25em]"
-                style={{ color: 'var(--accent)', textShadow: '0 0 12px rgba(245,180,0,0.3)' }}
-              >
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--accent)]">
                 Гастропаб Чехов
               </span>
               {!online && (
