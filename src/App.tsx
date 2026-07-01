@@ -7,6 +7,7 @@ import { MenuView } from './components/MenuView'
 import { StatsView } from './components/StatsView'
 import { TablesView } from './components/TablesView'
 import { useOrders, useTableCount } from './hooks/useOrders'
+import { useOnlineStatus } from './hooks/useOnlineStatus'
 import type { Order, Tab } from './types'
 
 function App() {
@@ -16,6 +17,18 @@ function App() {
   const [selectedTable, setSelectedTable] = useState<number | null>(null)
   const [activeOrder, setActiveOrder] = useState<Order | undefined>()
   const [refreshKey, setRefreshKey] = useState(0)
+  const online = useOnlineStatus()
+  const [showOfflineBanner, setShowOfflineBanner] = useState(false)
+
+  useEffect(() => {
+    if (!online) {
+      setShowOfflineBanner(true)
+    } else {
+      // hide banner after coming back online with a short delay
+      const t = setTimeout(() => setShowOfflineBanner(false), 3000)
+      return () => clearTimeout(t)
+    }
+  }, [online])
 
   useEffect(() => {
     if (selectedTable == null) {
@@ -34,7 +47,27 @@ function App() {
 
   return (
     <div className="min-h-screen bg-[var(--bg)] text-[var(--text)]">
-      <header className="sticky top-0 z-40 border-b border-[var(--border)] glass px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
+      {/* Offline / back-online banner */}
+      {showOfflineBanner && (
+        <div
+          className={`fixed top-0 inset-x-0 z-[100] flex items-center justify-center gap-2 py-2 text-xs font-semibold transition-all duration-500 ${
+            online
+              ? 'bg-[var(--success)] text-white'
+              : 'bg-[#3a1e1e] text-[#ffb4b4]'
+          }`}
+        >
+          {online ? (
+            <>✅ Соединение восстановлено</>
+          ) : (
+            <>📵 Офлайн — данные сохранены локально</>
+          )}
+        </div>
+      )}
+
+      <header
+        className="sticky top-0 z-40 border-b border-[var(--border)] glass px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))]"
+        style={{ marginTop: showOfflineBanner ? '2rem' : 0 }}
+      >
         <div className="mx-auto max-w-3xl">
           <div className="flex items-center justify-between gap-3">
             <div>
@@ -43,6 +76,11 @@ function App() {
                 <div className="text-[10px] font-semibold uppercase tracking-[0.25em] text-[var(--accent)]">
                   Гастропаб Чехов
                 </div>
+                {!online && (
+                  <span className="rounded-full bg-[#3a1e1e] px-1.5 py-0.5 text-[9px] font-semibold uppercase text-[#ffb4b4]">
+                    офлайн
+  </span>
+                )}
               </div>
               <h1 className="text-lg font-semibold leading-tight">
                 {tab === 'tables' ? 'Заказы' : tab === 'menu' ? 'Меню' : tab === 'ai' ? 'AI Ассистент' : 'Смена'}
