@@ -1,22 +1,32 @@
 import express from 'express'
-import Groq from 'groq-sdk'
 
 const app = express()
 app.use(express.json({ limit: '256kb' }))
 
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
+const API_KEY = process.env.GROQ_API_KEY
+
+// Lazy-load Groq only when key is available
+let groq = null
+if (API_KEY) {
+  const { default: Groq } = await import('groq-sdk')
+  groq = new Groq({ apiKey: API_KEY })
+} else {
+  console.warn('⚠️  GROQ_API_KEY not set — AI tab will be unavailable')
+}
 
 app.post('/api/chat', async (req, res) => {
+  if (!groq) {
+    return res.status(503).json({ error: 'AI недоступен: не задан GROQ_API_KEY' })
+  }
   try {
     const { messages } = req.body
     if (!Array.isArray(messages)) {
       return res.status(400).json({ error: 'messages must be an array' })
     }
-    // Trim history to last 6 messages to stay within token budget
     const trimmed = messages.slice(-6)
     const completion = await groq.chat.completions.create({
       messages: trimmed,
-      model: 'llama-3.1-8b-instant',   // 20k TPM on free tier vs 12k for 70b
+      model: 'llama-3.3-70b-versatile',
       max_tokens: 400,
       temperature: 0.7,
     })

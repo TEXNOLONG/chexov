@@ -35,6 +35,8 @@
   /* ── Status ───────────────────────────────────── */
   --success:      #30d158;
   --success-soft: rgba( 48,209, 88, 0.14);
+  --warning:      #ff9f0a;
+  --warning-soft: rgba(255,159, 10, 0.14);
   --danger:       #ff453a;
   --danger-soft:  rgba(255, 69, 58, 0.14);
 
