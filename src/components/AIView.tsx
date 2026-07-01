@@ -6,28 +6,31 @@ import { useOnlineStatus } from '../hooks/useOnlineStatus'
 interface Message {
   role: 'user' | 'assistant'
   content: string
-  image?: string
   loading?: boolean
 }
 
-const SYSTEM_PROMPT = `Ты — AI-ассистент ресторана Гастропаб Чехов в Ярославле. Ты помогаешь официантам.
-Ты знаешь полное меню ресторана:
+// Compact menu — just name + price + category, no long descriptions
+// This keeps the system prompt well under the 12k token limit
+const MENU_COMPACT = menu
+  .map((item) => {
+    const price = item.price > 0 ? formatPrice(item.price) : '—'
+    const allergens = item.allergens ? ` [${item.allergens}]` : ''
+    const desc = item.description ? ` (${item.description.slice(0, 40)})` : ''
+    return `${item.name} · ${item.category} · ${price}${allergens}${desc}`
+  })
+  .join('\n')
 
-${menu
-  .map(
-    (item) =>
-      `${item.name} (${item.category}) — ${item.price > 0 ? formatPrice(item.price) : 'цена не указана'}${item.description ? ': ' + item.description.slice(0, 100) : ''}${item.allergens ? ` [Аллергены: ${item.allergens}]` : ''}`,
-  )
-  .join('\n')}
+const SYSTEM_PROMPT = `Ты — AI-ассистент Гастропаб Чехов, Ярославль. Помогаешь официантам.
 
-ПРАВИЛА:
-- Отвечай кратко, по-русски, разговорным языком
-- НЕ используй таблицы Markdown (без |)
-- НЕ используй заголовки ## или ###
-- Используй нумерованные списки или маркеры •
-- Используй жирный **текст** и эмодзи
-- Максимум 5-7 позиций в списке
-- Помогай с составом блюд, аллергенами, подбором вина`
+МЕНЮ:
+${MENU_COMPACT}
+
+ПРАВИЛА ОТВЕТА:
+- По-русски, кратко и по делу
+- НЕ используй таблицы (без |) и заголовки ##
+- Используй списки с •, жирный **текст** и эмодзи
+- Максимум 5–7 позиций в списке
+- Помогай с составом, аллергенами, подбором вина к блюдам`
 
 async function askAI(messages: Array<{ role: string; content: string }>): Promise<string> {
   const res = await fetch('/api/chat', {
@@ -37,7 +40,10 @@ async function askAI(messages: Array<{ role: string; content: string }>): Promis
       messages: [{ role: 'system', content: SYSTEM_PROMPT }, ...messages],
     }),
   })
-  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err?.error ?? `HTTP ${res.status}`)
+  }
   const data = await res.json()
   return data.content ?? ''
 }
@@ -56,13 +62,12 @@ export function AIView() {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
-      content: 'Привет! Я знаю всё меню Чехова 🍽️\n\nМогу помочь с:\n• Составом и аллергенами\n• Вином к блюдам\n• Рекомендациями',
+      content: 'Привет! Я знаю всё меню Чехова 🍽️\n\nМогу помочь с:\n• Составом и аллергенами\n• Вином к блюдам\n• Рекомендациями гостям',
     },
   ])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
-  const inputRef = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -79,10 +84,11 @@ export function AIView() {
       const history = [...messages, userMsg].map((m) => ({ role: m.role, content: m.content }))
       const answer = await askAI(history)
       setMessages((prev) => [...prev.slice(0, -1), { role: 'assistant', content: answer }])
-    } catch {
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Ошибка'
       setMessages((prev) => [
         ...prev.slice(0, -1),
-        { role: 'assistant', content: '⚠️ Ошибка соединения. Проверьте интернет.' },
+        { role: 'assistant', content: `⚠️ ${msg}` },
       ])
     } finally {
       setLoading(false)
@@ -113,7 +119,7 @@ export function AIView() {
   }
 
   return (
-    <div className="flex h-full flex-col gap-3">
+    <div className="flex h-full flex-col gap-3" style={{ minHeight: 'calc(100dvh - 180px)' }}>
       {!online && (
         <div className="rounded-2xl px-4 py-3 text-sm" style={{ background: 'var(--danger-soft)', color: 'var(--danger)' }}>
           📵 <strong>Офлайн</strong> — AI требует интернет
@@ -121,12 +127,15 @@ export function AIView() {
       )}
 
       {/* Messages */}
-      <div className="flex-1 space-y-3 overflow-y-auto">
+      <div className="flex-1 space-y-3 overflow-y-auto pb-2">
         {messages.map((msg, i) => (
-          <div key={i} className={`flex gap-2 ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in`}>
+          <div
+            key={i}
+            className={`flex gap-2 animate-fade-in ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+          >
             {msg.role === 'assistant' && (
               <div
-                className="shrink-0 mt-1 w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold"
+                className="mt-1 h-7 w-7 shrink-0 rounded-full flex items-center justify-center text-xs font-black"
                 style={{ background: 'var(--accent)', color: '#000' }}
               >
                 AI
@@ -142,9 +151,9 @@ export function AIView() {
             >
               {msg.loading ? (
                 <div className="flex items-center gap-1.5 py-0.5">
-                  <span className="typing-dot w-2 h-2 rounded-full bg-[var(--muted)]" />
-                  <span className="typing-dot w-2 h-2 rounded-full bg-[var(--muted)]" />
-                  <span className="typing-dot w-2 h-2 rounded-full bg-[var(--muted)]" />
+                  <span className="typing-dot w-2 h-2 rounded-full" style={{ background: 'var(--muted)' }} />
+                  <span className="typing-dot w-2 h-2 rounded-full" style={{ background: 'var(--muted)' }} />
+                  <span className="typing-dot w-2 h-2 rounded-full" style={{ background: 'var(--muted)' }} />
                 </div>
               ) : (
                 <p className="whitespace-pre-wrap">{renderContent(msg.content)}</p>
@@ -172,21 +181,20 @@ export function AIView() {
         </div>
       )}
 
-      {/* Input bar */}
+      {/* Input */}
       <div
         className="flex items-end gap-2 rounded-2xl px-3 py-2"
         style={{ background: 'var(--surface)' }}
       >
         <textarea
-          ref={inputRef}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder={online ? 'Спросите что угодно…' : 'Нет соединения…'}
           disabled={!online || loading}
           rows={1}
-          className="flex-1 resize-none bg-transparent py-1 text-sm outline-none placeholder:text-[var(--muted)] disabled:cursor-not-allowed"
-          style={{ maxHeight: '120px', color: 'var(--text)' }}
+          className="flex-1 resize-none bg-transparent py-1 text-sm outline-none disabled:cursor-not-allowed"
+          style={{ maxHeight: '100px', color: 'var(--text)' }}
         />
         <button
           type="button"
@@ -202,7 +210,7 @@ export function AIView() {
       </div>
 
       <p className="text-center text-[10px]" style={{ color: 'var(--muted)' }}>
-        Groq · llama-3.3-70b
+        Groq · llama-3.3-70b-versatile
       </p>
     </div>
   )

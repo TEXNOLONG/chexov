@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { getActiveOrderForTable } from './db'
 import { AIView } from './components/AIView'
 import { BottomNav } from './components/BottomNav'
@@ -12,9 +12,9 @@ import type { Order, Tab } from './types'
 
 const TAB_TITLES: Record<Tab, { title: string; sub: string }> = {
   tables: { title: 'Заказы', sub: 'Управление столами' },
-  menu:   { title: 'Меню', sub: 'Все блюда и напитки' },
-  ai:     { title: 'AI Ассистент', sub: 'Умный помощник' },
-  stats:  { title: 'Смена', sub: 'Статистика и выручка' },
+  menu:   { title: 'Меню',   sub: 'Все блюда и напитки' },
+  ai:     { title: 'AI',     sub: 'Умный ассистент' },
+  stats:  { title: 'Смена',  sub: 'Статистика и выручка' },
 }
 
 function App() {
@@ -22,37 +22,48 @@ function App() {
   const [tableCount, setTableCount] = useTableCount()
   const [tab, setTab] = useState<Tab>('tables')
   const [selectedTable, setSelectedTable] = useState<number | null>(null)
-  const [activeOrder, setActiveOrder] = useState<Order | undefined>()
+
+  // undefined = loading, null = confirmed no order, Order = found order
+  const [activeOrder, setActiveOrder] = useState<Order | null | undefined>(undefined)
   const [refreshKey, setRefreshKey] = useState(0)
   const online = useOnlineStatus()
-  const [showOfflineBanner, setShowOfflineBanner] = useState(false)
 
+  // Only show banner on actual transitions, not on initial load
+  const [onlineBanner, setOnlineBanner] = useState<'back' | 'lost' | null>(null)
+  const prevOnlineRef = useRef<boolean | null>(null)
   useEffect(() => {
-    if (!online) {
-      setShowOfflineBanner(true)
-    } else {
-      const t = setTimeout(() => setShowOfflineBanner(false), 3000)
-      return () => clearTimeout(t)
-    }
+    if (prevOnlineRef.current === null) { prevOnlineRef.current = online; return }
+    if (prevOnlineRef.current === online) return
+    prevOnlineRef.current = online
+    setOnlineBanner(online ? 'back' : 'lost')
+    const t = setTimeout(() => setOnlineBanner(null), 3000)
+    return () => clearTimeout(t)
   }, [online])
 
   useEffect(() => {
     if (selectedTable == null) { setActiveOrder(undefined); return }
-    getActiveOrderForTable(selectedTable).then(setActiveOrder)
+    setActiveOrder(undefined)
+    getActiveOrderForTable(selectedTable).then((o) => {
+      setActiveOrder(o ?? null) // null = table is free
+    })
   }, [selectedTable, orders, refreshKey])
 
   const { title, sub } = TAB_TITLES[tab]
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg)', color: 'var(--text)' }}>
-      {/* Offline banner */}
-      {showOfflineBanner && (
-        <div className={`fixed top-0 inset-x-0 z-[100] flex items-center justify-center gap-2 py-2.5 text-xs font-semibold transition-all duration-500 ${
-          online
-            ? 'bg-[var(--success)] text-white'
-            : 'bg-[#2a1010] text-[var(--danger)] border-b border-[var(--danger)]/30'
-        }`}>
-          {online ? '✅ Соединение восстановлено' : '📵 Офлайн — данные сохранены'}
+
+      {/* Online/offline transition banner */}
+      {onlineBanner && (
+        <div
+          className="fixed top-0 inset-x-0 z-[100] flex items-center justify-center gap-2 py-2.5 text-xs font-semibold"
+          style={
+            onlineBanner === 'back'
+              ? { background: 'var(--success)', color: '#000' }
+              : { background: 'var(--danger-soft)', color: 'var(--danger)', borderBottom: '1px solid rgba(255,69,58,0.3)' }
+          }
+        >
+          {onlineBanner === 'back' ? '✅ Соединение восстановлено' : '📵 Офлайн — данные сохранены'}
         </div>
       )}
 
@@ -60,52 +71,51 @@ function App() {
       <header
         className="sticky top-0 z-40 glass border-b border-[var(--border)]"
         style={{
-          paddingTop: showOfflineBanner ? 'calc(max(0.75rem, env(safe-area-inset-top)) + 2.2rem)' : 'max(0.75rem, env(safe-area-inset-top))',
-          paddingBottom: '0.75rem',
-          paddingLeft: '1rem',
-          paddingRight: '1rem',
-          transition: 'padding-top 0.3s ease',
+          paddingTop: 'max(0.9rem, env(safe-area-inset-top))',
+          paddingBottom: '0.8rem',
+          paddingLeft: '1.1rem',
+          paddingRight: '1.1rem',
         }}
       >
         <div className="mx-auto max-w-3xl flex items-center justify-between gap-3">
-          {/* Logo + title */}
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2.5 mb-0.5">
               <div
-                className="w-7 h-7 rounded-xl shrink-0 flex items-center justify-center"
+                className="w-7 h-7 rounded-[10px] shrink-0 flex items-center justify-center"
                 style={{ background: 'var(--accent)' }}
               >
-                <svg viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth={2.2} className="w-4 h-4">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth={2.4} className="w-4 h-4">
                   <path d="M3 11l7-7 4 4 7-7" strokeLinecap="round" strokeLinejoin="round"/>
                   <path d="M21 11v10H3V11" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               </div>
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--accent)]">
+              <span className="text-[10px] font-black uppercase tracking-[0.2em]" style={{ color: 'var(--accent)' }}>
                 Гастропаб Чехов
               </span>
               {!online && (
-                <span className="badge badge-danger">офлайн</span>
+                <span className="badge badge-danger text-[9px]">офлайн</span>
               )}
             </div>
             <h1 className="text-xl font-black leading-tight">{title}</h1>
-            <p className="text-xs text-[var(--muted)]">{sub}</p>
+            <p className="text-xs" style={{ color: 'var(--muted)' }}>{sub}</p>
           </div>
 
-          {/* Table count control */}
           {tab === 'tables' && (
-            <div className="text-right shrink-0">
-              <div className="text-[10px] font-semibold uppercase tracking-widest text-[var(--muted)] mb-1">Столов</div>
+            <div className="shrink-0 text-right">
+              <div className="text-[9px] font-bold uppercase tracking-widest mb-1" style={{ color: 'var(--muted)' }}>Столов</div>
               <div className="flex items-center gap-1">
                 <button
                   type="button"
                   onClick={() => setTableCount(Math.max(1, tableCount - 1))}
-                  className="w-8 h-8 rounded-xl bg-[var(--surface-2)] text-[var(--muted)] flex items-center justify-center font-bold active:scale-90 transition"
+                  className="w-8 h-8 rounded-xl flex items-center justify-center font-bold text-base active:scale-90 transition"
+                  style={{ background: 'var(--surface-2)', color: 'var(--muted)' }}
                 >−</button>
                 <span className="w-8 text-center text-base font-black">{tableCount}</span>
                 <button
                   type="button"
                   onClick={() => setTableCount(Math.min(40, tableCount + 1))}
-                  className="w-8 h-8 rounded-xl bg-[var(--surface-2)] text-[var(--muted)] flex items-center justify-center font-bold active:scale-90 transition"
+                  className="w-8 h-8 rounded-xl flex items-center justify-center font-bold text-base active:scale-90 transition"
+                  style={{ background: 'var(--surface-2)', color: 'var(--muted)' }}
                 >+</button>
               </div>
             </div>
@@ -113,24 +123,17 @@ function App() {
         </div>
       </header>
 
-      {/* Main content */}
       <main className="mx-auto max-w-3xl px-4 py-4 pb-28">
         {tab === 'tables' && (
-          <TablesView
-            tableCount={tableCount}
-            orders={orders}
-            onSelectTable={(num) => setSelectedTable(num)}
-          />
+          <TablesView tableCount={tableCount} orders={orders} onSelectTable={setSelectedTable} />
         )}
-        {tab === 'menu' && <MenuView />}
-        {tab === 'ai' && <AIView />}
+        {tab === 'menu'  && <MenuView />}
+        {tab === 'ai'    && <AIView />}
         {tab === 'stats' && <StatsView orders={orders} />}
       </main>
 
-      {/* Bottom nav (only when no table selected) */}
       {!selectedTable && <BottomNav active={tab} onChange={setTab} />}
 
-      {/* Order panel */}
       {selectedTable != null && (
         <OrderPanel
           tableNumber={selectedTable}

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { v4 as uuid } from 'uuid'
 import { deleteOrder, getActiveOrderForTable, saveOrder } from '../db'
 import type { MenuItem, Order, OrderItem } from '../types'
@@ -7,7 +7,8 @@ import { MenuView } from './MenuView'
 
 interface Props {
   tableNumber: number
-  order?: Order
+  // undefined = still loading from DB; null = confirmed free table; Order = active order
+  order: Order | null | undefined
   onClose: () => void
   onChanged: () => void
 }
@@ -61,7 +62,22 @@ export function OrderPanel({ tableNumber, order, onClose, onChanged }: Props) {
   const [showMenu, setShowMenu] = useState(false)
   const [note, setNote] = useState(order?.note ?? '')
   const [guestCount, setGuestCount] = useState<number | undefined>(order?.guestCount)
-  const [showGuestPicker, setShowGuestPicker] = useState(!order)
+  // Only show guest picker when the table is CONFIRMED free (null), not while loading (undefined)
+  const [showGuestPicker, setShowGuestPicker] = useState(false)
+  const shownGuestPickerRef = useRef(false)
+
+  // Trigger guest picker exactly once when we confirm there's no existing order
+  useEffect(() => {
+    if (order === null && !shownGuestPickerRef.current) {
+      shownGuestPickerRef.current = true
+      setShowGuestPicker(true)
+    }
+    // Sync note/guestCount when order loads
+    if (order != null) {
+      setNote(order.note ?? '')
+      setGuestCount(order.guestCount)
+    }
+  }, [order])
 
   const [pendingItem, setPendingItem] = useState<MenuItem | null>(null)
   const [selectedDoneness, setSelectedDoneness] = useState('')

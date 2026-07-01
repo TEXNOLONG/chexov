@@ -4,37 +4,36 @@
   color-scheme: dark;
   font-family: -apple-system, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', system-ui, sans-serif;
 
-  /* ── iOS Dark System Palette ──────────────────── */
-  --bg:        #000000;
-  --surface:   #1c1c1e;
-  --surface-2: #2c2c2e;
-  --surface-3: #3a3a3c;
+  /* ── Warm dark palette (amber-brown undertone) ── */
+  --bg:        #0d0b08;
+  --surface:   #1c1813;
+  --surface-2: #2a231a;
+  --surface-3: #3a3128;
 
-  /* ── Gold accent — used sparingly ─────────────── */
+  /* ── Gold / Amber accent ─────────────────────── */
   --accent:      #f5b400;
   --accent-2:    #ffd166;
-  --accent-soft: rgba(245, 180, 0, 0.12);
-  --accent-glow: rgba(245, 180, 0, 0.20);
+  --accent-soft: rgba(245, 180, 0, 0.14);
+  --accent-glow: rgba(245, 180, 0, 0.22);
 
-  /* ── iOS System Text ──────────────────────────── */
-  --text:   #ffffff;
-  --text-2: rgba(235, 235, 245, 0.60);
-  --muted:  rgba(235, 235, 245, 0.30);
+  /* ── Text ────────────────────────────────────── */
+  --text:   #f5f0e8;
+  --text-2: rgba(245, 240, 232, 0.60);
+  --muted:  rgba(245, 240, 232, 0.30);
 
-  /* ── Status ───────────────────────────────────── */
+  /* ── Status ──────────────────────────────────── */
   --success:      #30d158;
-  --success-soft: rgba(48, 209, 88, 0.12);
+  --success-soft: rgba(48, 209, 88, 0.14);
   --danger:       #ff453a;
-  --danger-soft:  rgba(255, 69, 58, 0.12);
+  --danger-soft:  rgba(255, 69, 58, 0.14);
   --warning:      #ffd60a;
 
-  /* ── Borders — very subtle ────────────────────── */
-  --border:        rgba(255, 255, 255, 0.08);
-  --border-accent: rgba(245, 180, 0, 0.20);
+  /* ── Borders ─────────────────────────────────── */
+  --border:        rgba(255, 255, 255, 0.07);
+  --border-accent: rgba(245, 180, 0, 0.24);
 
-  /* ── Shadows — minimal ────────────────────────── */
-  --shadow:    0 2px 16px rgba(0,0,0,0.4);
-  --shadow-sm: 0 1px 6px rgba(0,0,0,0.3);
+  /* ── Header height for sticky offsets ───────── */
+  --header-h: 88px;
 }
 
 * { box-sizing: border-box; }
@@ -58,13 +57,9 @@ img { display: block; }
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 
-/* ─── Animations ──────────────────────────────────── */
+/* ─── Animations ────────────────────────────── */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-@keyframes fadeInFast {
-  from { opacity: 0; transform: translateY(4px); }
+  from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 @keyframes slideUp {
@@ -80,28 +75,21 @@ img { display: block; }
   100% { background-position:  200% 0; }
 }
 @keyframes pulse-dot {
-  0%, 80%, 100% { transform: scale(0.6); opacity: 0.35; }
-  40%            { transform: scale(1);   opacity: 1; }
+  0%, 80%, 100% { transform: scale(0.55); opacity: 0.3; }
+  40%            { transform: scale(1);    opacity: 1; }
 }
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-@keyframes tableAppear {
-  from { opacity: 0; transform: translateY(12px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
+@keyframes spin { to { transform: rotate(360deg); } }
 
-.animate-fade-in   { animation: fadeIn    0.28s ease-out both; }
-.animate-fade-fast { animation: fadeInFast 0.16s ease-out both; }
-.animate-slide-up  { animation: slideUp   0.32s cubic-bezier(0.32,0.72,0,1) both; }
-.animate-scale-in  { animation: scaleIn   0.22s cubic-bezier(0.32,0.72,0,1) both; }
-.animate-spin      { animation: spin      0.8s  linear infinite; }
+.animate-fade-in  { animation: fadeIn  0.28s ease-out both; }
+.animate-slide-up { animation: slideUp 0.32s cubic-bezier(0.32,0.72,0,1) both; }
+.animate-scale-in { animation: scaleIn 0.22s cubic-bezier(0.32,0.72,0,1) both; }
+.animate-spin     { animation: spin    0.8s  linear infinite; }
 
 .typing-dot { animation: pulse-dot 1.4s infinite ease-in-out; }
 .typing-dot:nth-child(2) { animation-delay: 0.2s; }
 .typing-dot:nth-child(3) { animation-delay: 0.4s; }
 
-/* ─── Skeleton ────────────────────────────────────── */
+/* ─── Skeleton ──────────────────────────────── */
 .skeleton {
   background: linear-gradient(90deg, var(--surface) 25%, var(--surface-2) 50%, var(--surface) 75%);
   background-size: 200% 100%;
@@ -109,42 +97,30 @@ img { display: block; }
   border-radius: 12px;
 }
 
-/* ─── Glass header/nav ────────────────────────────── */
+/* ─── Glass ─────────────────────────────────── */
 .glass {
-  background: rgba(0, 0, 0, 0.85);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  background: rgba(13, 11, 8, 0.88);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
 }
 
-/* ─── Category pills ──────────────────────────────── */
+/* ─── Category pills ─────────────────────────── */
 .cat-pill {
   display: inline-flex;
   align-items: center;
-  padding: 0.38rem 1rem;
+  padding: 0.4rem 1.1rem;
   border-radius: 9999px;
   font-size: 0.75rem;
   font-weight: 600;
   white-space: nowrap;
   transition: all 0.15s ease;
-  border: 1px solid transparent;
   letter-spacing: 0.01em;
 }
-.cat-pill-active {
-  background: var(--accent);
-  color: #000;
-  font-weight: 700;
-}
-.cat-pill-inactive {
-  background: var(--surface-2);
-  color: var(--text-2);
-  border-color: transparent;
-}
-.cat-pill-inactive:active {
-  background: var(--surface-3);
-  transform: scale(0.96);
-}
+.cat-pill-active  { background: var(--accent); color: #000; font-weight: 700; }
+.cat-pill-inactive { background: var(--surface-2); color: var(--text-2); }
+.cat-pill-inactive:active { background: var(--surface-3); transform: scale(0.96); }
 
-/* ─── Badges ──────────────────────────────────────── */
+/* ─── Badges ────────────────────────────────── */
 .badge {
   display: inline-flex;
   align-items: center;
@@ -161,13 +137,13 @@ img { display: block; }
 .badge-paid   { background: var(--success-soft); color: var(--success); }
 .badge-danger { background: var(--danger-soft);  color: var(--danger); }
 
-/* ─── Buttons ─────────────────────────────────────── */
+/* ─── Buttons ───────────────────────────────── */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.35rem;
-  padding: 0.72rem 1.25rem;
+  padding: 0.8rem 1.3rem;
   border-radius: 14px;
   font-size: 0.875rem;
   font-weight: 600;
@@ -178,55 +154,24 @@ img { display: block; }
   white-space: nowrap;
   -webkit-tap-highlight-color: transparent;
 }
-.btn:active { transform: scale(0.96); opacity: 0.85; }
+.btn:active { transform: scale(0.95); opacity: 0.82; }
 
-.btn-accent {
-  background: var(--accent);
-  color: #000;
-  font-weight: 700;
-}
-.btn-ghost {
-  background: var(--surface-2);
-  color: var(--text-2);
-}
-.btn-success {
-  background: var(--success-soft);
-  color: var(--success);
-}
-.btn-danger {
-  background: var(--danger-soft);
-  color: var(--danger);
-}
-.btn-sm {
-  padding: 0.4rem 0.85rem;
-  border-radius: 10px;
-  font-size: 0.8rem;
-}
-.btn-icon {
-  padding: 0.5rem;
-  border-radius: 12px;
-  width: 42px;
-  height: 42px;
-}
+.btn-accent  { background: var(--accent); color: #000; font-weight: 700; }
+.btn-ghost   { background: var(--surface-2); color: var(--text-2); }
+.btn-success { background: var(--success-soft); color: var(--success); font-weight: 700; }
+.btn-danger  { background: var(--danger-soft);  color: var(--danger); }
+.btn-sm      { padding: 0.42rem 0.9rem; border-radius: 10px; font-size: 0.8rem; }
+.btn-icon    { padding: 0.5rem; border-radius: 12px; width: 44px; height: 44px; }
 
-/* ─── Menu image card ─────────────────────────────── */
-.menu-img {
-  width: 100%;
-  aspect-ratio: 4/3;
-  object-fit: cover;
-  display: block;
-}
+/* ─── Menu image card ───────────────────────── */
+.menu-img { width: 100%; aspect-ratio: 4/3; object-fit: cover; display: block; }
 .menu-img-placeholder {
-  width: 100%;
-  aspect-ratio: 4/3;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--surface-2);
-  font-size: 2rem;
+  width: 100%; aspect-ratio: 4/3;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--surface-2); font-size: 2rem;
 }
 
-/* ─── Table cards — clean iOS style ──────────────── */
+/* ─── Table cards ───────────────────────────── */
 .table-card {
   border-radius: 20px;
   padding: 1rem;
@@ -237,22 +182,11 @@ img { display: block; }
   background: var(--surface);
   -webkit-tap-highlight-color: transparent;
 }
-.table-card:active {
-  transform: scale(0.96);
-  opacity: 0.85;
-}
-.table-card-free {}
+.table-card:active { transform: scale(0.95); opacity: 0.82; }
+.table-card-busy   { background: #1c1710; border: 1px solid rgba(245,180,0,0.16); }
+.table-card-served { background: #0e1c13; border: 1px solid rgba(48,209,88,0.16); }
 
-.table-card-busy {
-  background: #1c1a12;
-  border: 1px solid rgba(245,180,0,0.18);
-}
-.table-card-served {
-  background: #0e1c13;
-  border: 1px solid rgba(48,209,88,0.18);
-}
-
-/* ─── Order item row ──────────────────────────────── */
+/* ─── Order item row ────────────────────────── */
 .order-item {
   display: flex;
   align-items: center;
@@ -260,30 +194,13 @@ img { display: block; }
   padding: 11px 12px;
   border-radius: 16px;
   background: var(--surface);
-  transition: opacity 0.2s ease;
 }
-.order-item-served {
-  background: rgba(48,209,88,0.06);
-}
+.order-item-served { background: rgba(48,209,88,0.06); }
 
-/* ─── Progress bar ────────────────────────────────── */
-.progress-bar {
-  height: 3px;
-  border-radius: 999px;
-  background: var(--surface-2);
-  overflow: hidden;
-}
-.progress-fill {
-  height: 100%;
-  border-radius: 999px;
-  background: var(--success);
-  transition: width 0.5s ease;
-}
-
-/* ─── Search input ────────────────────────────────── */
+/* ─── Search input ──────────────────────────── */
 .search-input {
   width: 100%;
-  padding: 0.75rem 1rem 0.75rem 2.75rem;
+  padding: 0.78rem 1rem 0.78rem 2.75rem;
   border-radius: 14px;
   border: none;
   background: var(--surface-2);
@@ -292,12 +209,10 @@ img { display: block; }
   outline: none;
   transition: background 0.15s ease;
 }
-.search-input:focus {
-  background: var(--surface-3);
-}
+.search-input:focus { background: var(--surface-3); }
 .search-input::placeholder { color: var(--muted); }
 
-/* ─── Stagger ─────────────────────────────────────── */
+/* ─── Stagger delays ────────────────────────── */
 .stagger-1 { animation-delay: 0.04s; }
 .stagger-2 { animation-delay: 0.08s; }
 .stagger-3 { animation-delay: 0.12s; }

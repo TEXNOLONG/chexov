@@ -1,16 +1,15 @@
 import type { ReactNode } from 'react'
 import type { Tab } from '../types'
-import { cn } from '../utils'
 
 const tabs: Array<{ id: Tab; label: string; icon: ReactNode }> = [
   {
     id: 'tables',
     label: 'Столы',
     icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} className="w-6 h-6">
-        <rect x="3" y="11" width="18" height="2" rx="1" strokeLinecap="round"/>
-        <path d="M6 13v6M18 13v6M6 7v4M18 7v4" strokeLinecap="round"/>
-        <rect x="4" y="5" width="16" height="4" rx="1.5"/>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="w-5 h-5">
+        <rect x="3" y="10" width="18" height="2.5" rx="1.2" strokeLinecap="round"/>
+        <path d="M6.5 12.5v5.5M17.5 12.5v5.5M6.5 6v4.5M17.5 6v4.5" strokeLinecap="round"/>
+        <rect x="4.5" y="4" width="15" height="3.5" rx="1.5"/>
       </svg>
     ),
   },
@@ -18,7 +17,7 @@ const tabs: Array<{ id: Tab; label: string; icon: ReactNode }> = [
     id: 'menu',
     label: 'Меню',
     icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} className="w-6 h-6">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="w-5 h-5">
         <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2" strokeLinecap="round"/>
         <rect x="9" y="3" width="6" height="4" rx="1.5"/>
         <path d="M9 12h6M9 16h4" strokeLinecap="round"/>
@@ -29,11 +28,11 @@ const tabs: Array<{ id: Tab; label: string; icon: ReactNode }> = [
     id: 'ai',
     label: 'AI',
     icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} className="w-6 h-6">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="w-5 h-5">
         <path d="M12 2a4 4 0 014 4v1h1a2 2 0 012 2v2a2 2 0 01-2 2h-1v1a4 4 0 01-8 0v-1H7a2 2 0 01-2-2V9a2 2 0 012-2h1V6a4 4 0 014-4z" strokeLinecap="round" strokeLinejoin="round"/>
-        <circle cx="9.5" cy="9.5" r="0.75" fill="currentColor" stroke="none"/>
-        <circle cx="14.5" cy="9.5" r="0.75" fill="currentColor" stroke="none"/>
-        <path d="M9 13.5s1 1.5 3 1.5 3-1.5 3-1.5" strokeLinecap="round"/>
+        <circle cx="9.5" cy="9.5" r="0.8" fill="currentColor" stroke="none"/>
+        <circle cx="14.5" cy="9.5" r="0.8" fill="currentColor" stroke="none"/>
+        <path d="M9.5 13.5s.8 1.5 2.5 1.5 2.5-1.5 2.5-1.5" strokeLinecap="round"/>
       </svg>
     ),
   },
@@ -41,7 +40,7 @@ const tabs: Array<{ id: Tab; label: string; icon: ReactNode }> = [
     id: 'stats',
     label: 'Смена',
     icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} className="w-6 h-6">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="w-5 h-5">
         <path d="M4 20h16M4 20V10l6-6 4 4 6-4v16" strokeLinecap="round" strokeLinejoin="round"/>
       </svg>
     ),
@@ -54,7 +53,7 @@ export function BottomNav({ active, onChange }: { active: Tab; onChange: (tab: T
       className="fixed inset-x-0 bottom-0 z-50 glass border-t border-[var(--border)]"
       style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}
     >
-      <div className="mx-auto grid max-w-3xl grid-cols-4">
+      <div className="mx-auto grid max-w-3xl grid-cols-4 px-2 pt-1">
         {tabs.map((tab) => {
           const isActive = active === tab.id
           return (
@@ -62,27 +61,32 @@ export function BottomNav({ active, onChange }: { active: Tab; onChange: (tab: T
               key={tab.id}
               type="button"
               onClick={() => onChange(tab.id)}
-              className={cn(
-                'relative flex flex-col items-center gap-1 py-3 px-1 transition-all duration-150',
-                isActive ? 'text-[var(--accent)]' : 'text-[var(--muted)]',
-              )}
+              className="relative flex flex-col items-center gap-1 py-2 px-1 transition-all duration-150 rounded-2xl"
               style={{ WebkitTapHighlightColor: 'transparent' }}
             >
-              <span className={cn('transition-transform duration-150', isActive && 'scale-110')}>
-                {tab.icon}
-              </span>
-              <span className={cn(
-                'text-[10px] font-semibold leading-none tracking-wide transition-opacity duration-150',
-                isActive ? 'opacity-100' : 'opacity-40',
-              )}>
-                {tab.label}
-              </span>
+              {/* Yellow pill background for active */}
               {isActive && (
                 <span
-                  className="absolute bottom-0 left-1/2 -translate-x-1/2 w-5 h-[2.5px] rounded-full"
-                  style={{ background: 'var(--accent)' }}
+                  className="absolute inset-x-3 top-1.5 bottom-1"
+                  style={{
+                    background: 'var(--accent)',
+                    borderRadius: '12px',
+                    zIndex: 0,
+                  }}
                 />
               )}
+              <span
+                className="relative z-10 transition-all duration-150"
+                style={{ color: isActive ? '#000' : 'var(--muted)' }}
+              >
+                {tab.icon}
+              </span>
+              <span
+                className="relative z-10 text-[10px] font-bold leading-none"
+                style={{ color: isActive ? '#000' : 'rgba(245,240,232,0.25)' }}
+              >
+                {tab.label}
+              </span>
             </button>
           )
         })}
