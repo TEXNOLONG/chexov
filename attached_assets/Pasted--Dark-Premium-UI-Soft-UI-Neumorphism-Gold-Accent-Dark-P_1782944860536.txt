@@ -1,0 +1,98 @@
+> Dark Premium UI с элементами Soft UI (Neumorphism) и Gold Accent.
+
+
+
+Или короче:
+
+Dark Premium
+
+Dark Luxury UI
+
+Dark Gold UI
+
+Modern Dark Dashboard
+
+Premium Mobile UI
+
+
+
+---
+
+Если объяснять ИИ, то лучше так:
+
+> Создай интерфейс в стиле Dark Premium Mobile UI. Используй почти черный фон (#0D0D0D), темно-серые карточки (#1A1A1A), теплый золотой/янтарный акцент (#F5B400). Интерфейс должен выглядеть премиально, минималистично и дорого. Используй большие скругления (16–20 px), мягкие тени, легкое свечение у акцентных элементов, крупные кнопки и четкую визуальную иерархию. Минимум цветов, максимум контраста. Никаких ярких градиентов и лишнего декора.
+
+
+
+
+---
+
+Если хочется прямо попасть в стиль с картинки, добавь:
+
+Premium mobile app
+
+Dark mode
+
+Soft UI
+
+Luxury fintech style
+
+Rounded cards
+
+Floating buttons
+
+Amber accent
+
+Warm yellow accent
+
+Minimal
+
+High contrast
+
+Elegant typography
+
+Modern dashboard
+
+Apple quality
+
+Linear quality
+
+Glass-free
+
+Clean layout
+
+
+
+---
+
+И обязательно напиши, чего НЕ делать
+
+> Не используй:
+
+стекломорфизм (Glassmorphism);
+
+кислотные цвета;
+
+яркие градиенты;
+
+сложные текстуры;
+
+тонкие кнопки;
+
+перегруженные экраны;
+
+большое количество цветов.
+
+
+
+
+
+---
+
+Для твоего приложения официанта я бы использовал такой промпт:
+
+> Design a premium restaurant POS interface in a Dark Premium style. Use a nearly black background (#0D0D0D), dark gray cards, warm gold accent color, large rounded corners (16px), soft shadows, subtle glow on primary buttons, clean typography, spacious layout, high contrast, and minimalistic UI. The interface should feel luxurious, modern, fast, and optimized for touch interaction on tablets. Avoid glassmorphism, neon effects, excessive gradients, and visual clutter. Prioritize usability over decoration.
+
+
+
+💡 Из всех названий именно Dark Premium UI — самое универсальное. Большинство современных ИИ (ChatGPT, Claude, Gemini, Midjourney, Figma AI, Lovable, v0) понимают его и генерируют интерфейсы очень близкие к тому, что на твоем примере.

@@ -70,15 +70,24 @@ function App() {
         <div className="mx-auto max-w-3xl flex items-center justify-between gap-3">
           {/* Logo + title */}
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 mb-0.5">
-              {/* Logo dot */}
-              <div className="w-6 h-6 rounded-lg bg-[var(--accent)] flex items-center justify-center shrink-0">
-                <svg viewBox="0 0 24 24" fill="none" stroke="#0a0806" strokeWidth={2.5} className="w-3.5 h-3.5">
+            <div className="flex items-center gap-2.5 mb-0.5">
+              {/* Logo mark */}
+              <div
+                className="w-7 h-7 rounded-xl shrink-0 flex items-center justify-center"
+                style={{
+                  background: 'linear-gradient(145deg, #ffc107 0%, #f5b400 100%)',
+                  boxShadow: '0 0 14px rgba(245,180,0,0.35), 3px 3px 8px #080808',
+                }}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="#0d0d0d" strokeWidth={2.4} className="w-4 h-4">
                   <path d="M3 11l7-7 4 4 7-7" strokeLinecap="round" strokeLinejoin="round"/>
                   <path d="M21 11v10H3V11" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               </div>
-              <span className="text-[10px] font-black uppercase tracking-[0.22em] text-[var(--accent)]">
+              <span
+                className="text-[10px] font-black uppercase tracking-[0.25em]"
+                style={{ color: 'var(--accent)', textShadow: '0 0 12px rgba(245,180,0,0.3)' }}
+              >
                 Гастропаб Чехов
               </span>
               {!online && (
