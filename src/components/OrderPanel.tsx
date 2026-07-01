@@ -436,11 +436,8 @@ export function OrderPanel({ tableNumber, order, onClose, onChanged }: Props) {
 
       {/* ── Guest Count Picker ── */}
       {showGuestPicker && !showMenu && (
-        <div className="fixed inset-0 z-60 flex items-end" style={{ background: 'rgba(0,0,0,0.6)' }}>
-          <div
-            className="w-full rounded-t-3xl border-t border-[var(--border)] px-5 pt-5 pb-8 animate-slide-up"
-            style={{ background: 'var(--surface)' }}
-          >
+        <div className="fixed inset-0 z-60 flex items-end" style={{ background: 'rgba(0,0,0,0.70)' }}>
+          <div className="w-full rounded-t-3xl px-5 pt-5 pb-8 animate-slide-up sheet-bg">
             <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-[var(--border)]" />
             <p className="text-base font-bold mb-1">Стол {tableNumber}</p>
             <p className="text-sm text-[var(--muted)] mb-4">Сколько гостей?</p>
@@ -473,11 +470,8 @@ export function OrderPanel({ tableNumber, order, onClose, onChanged }: Props) {
 
       {/* ── Item Options Modal (doneness / volume) ── */}
       {pendingItem && (
-        <div className="fixed inset-0 z-60 flex items-end" style={{ background: 'rgba(0,0,0,0.6)' }}>
-          <div
-            className="w-full rounded-t-3xl border-t border-[var(--border)] px-5 pt-5 pb-8 animate-slide-up"
-            style={{ background: 'var(--surface)' }}
-          >
+        <div className="fixed inset-0 z-60 flex items-end" style={{ background: 'rgba(0,0,0,0.70)' }}>
+          <div className="w-full rounded-t-3xl px-5 pt-5 pb-8 animate-slide-up sheet-bg">
             <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-[var(--border)]" />
             <p className="text-sm font-black mb-1 text-[var(--accent)]">{pendingItem.name}</p>
 

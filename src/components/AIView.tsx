@@ -1,6 +1,4 @@
 import { useEffect, useRef, useState } from 'react'
-import { menu } from './MenuView'
-import { formatPrice } from '../utils'
 import { useOnlineStatus } from '../hooks/useOnlineStatus'
 
 interface Message {
@@ -9,17 +7,11 @@ interface Message {
   loading?: boolean
 }
 
-// Ultra-compact: only name + price — no descriptions or allergens
-// 275 items × ~25 chars / 4 = ~1,700 tokens, well within limits
-const MENU_LINES = menu
-  .map((item) => `${item.name} (${item.category}) ${item.price > 0 ? formatPrice(item.price) : ''}`)
-  .join('\n')
-
-const SYSTEM_PROMPT = `Ты — помощник официанта в Гастропаб Чехов, Ярославль.
-
-МЕНЮ:\n${MENU_LINES}
-
-СТИЛЬ: кратко, по-русски, без таблиц и ## заголовков. Используй • списки и **жирный**. Макс 6 пунктов.`
+// No menu list in the prompt — keeps every request under 1k tokens on free tier
+const SYSTEM_PROMPT = `Ты — ИИ-помощник официанта в Гастропабе Чехов, Ярославль.
+В меню: европейская и русская кухня — закуски, салаты, супы, горячее, стейки, морепродукты, десерты. Бар: пиво (кран/бутылка), вина (белые/красные/розовые/игристые), коктейли, крепкие напитки, безалкогольные.
+Помогай с составом блюд, аллергенами (глютен/лактоза/орехи), подбором вина, рекомендациями гостям.
+Отвечай кратко по-русски. Используй • списки и **жирный**. Без таблиц и ## заголовков. Макс 6 пунктов.`
 
 async function askAI(messages: Array<{ role: string; content: string }>): Promise<string> {
   const res = await fetch('/api/chat', {
@@ -32,13 +24,13 @@ async function askAI(messages: Array<{ role: string; content: string }>): Promis
   return data.content ?? ''
 }
 
-const QUICK = ['🍷 Что к стейку?', '🥗 Без глютена', '🍺 На кране?', '🧑‍🍳 Топ-5 блюд', '🌿 Без лактозы', '🍸 Безалкогольное']
+const QUICK = ['🍷 Вино к стейку', '🥗 Без глютена', '🍺 Что на кране?', '🧑‍🍳 Топ-5 блюд', '🌿 Без лактозы', '🍸 Безалкогольные']
 
 export function AIView() {
   const online = useOnlineStatus()
   const [messages, setMessages] = useState<Message[]>([{
     role: 'assistant',
-    content: 'Привет! Знаю всё меню Чехова 🍽️\n\n• Состав и аллергены\n• Вино к блюдам\n• Рекомендации',
+    content: 'Привет! Я помогу с меню Чехова 🍽️\n\n• Состав блюд и аллергены\n• Вино к едe\n• Рекомендации гостям',
   }])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
@@ -53,12 +45,12 @@ export function AIView() {
     setInput('')
     setLoading(true)
     try {
-      // Keep last 6 messages to avoid exceeding token limits
-      const history = [...messages, userMsg].slice(-6).map((m) => ({ role: m.role, content: m.content }))
+      // Only last 4 messages to stay well under the 6k TPM free tier limit
+      const history = [...messages, userMsg].slice(-4).map((m) => ({ role: m.role, content: m.content }))
       const answer = await askAI(history)
       setMessages((p) => [...p.slice(0, -1), { role: 'assistant', content: answer }])
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Ошибка'
+      const msg = err instanceof Error ? err.message : 'Ошибка соединения'
       setMessages((p) => [...p.slice(0, -1), { role: 'assistant', content: `⚠️ ${msg}` }])
     } finally {
       setLoading(false)
@@ -93,12 +85,14 @@ export function AIView() {
           <div key={i} className={`flex gap-2 animate-fade-in ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             {msg.role === 'assistant' && (
               <div className="mt-1 h-7 w-7 shrink-0 rounded-full flex items-center justify-center text-xs font-black"
-                style={{ background: 'var(--accent)', color: '#000' }}>AI</div>
+                style={{ background: 'linear-gradient(135deg, var(--accent) 0%, #ff9f00 100%)', color: '#000' }}>
+                AI
+              </div>
             )}
             <div className="max-w-[84%] rounded-2xl px-4 py-3 text-sm leading-relaxed"
               style={msg.role === 'user'
                 ? { background: 'var(--accent)', color: '#000', fontWeight: 600, borderRadius: '20px 20px 6px 20px' }
-                : { background: 'var(--glass-card)', backdropFilter: 'blur(16px)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: '6px 20px 20px 20px' }
+                : { background: 'var(--surface-solid)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: '6px 20px 20px 20px' }
               }>
               {msg.loading
                 ? <div className="flex items-center gap-1.5 py-0.5">
@@ -116,14 +110,16 @@ export function AIView() {
         <div className="flex flex-wrap gap-2">
           {QUICK.map((p) => (
             <button key={p} type="button" onClick={() => send(p)}
-              className="rounded-full px-3 py-1.5 text-xs font-medium transition active:opacity-70 glass-card">
+              className="rounded-full px-3 py-1.5 text-xs font-medium transition active:opacity-70"
+              style={{ background: 'var(--surface-solid)', border: '1px solid var(--border)', color: 'var(--text-2)' }}>
               {p}
             </button>
           ))}
         </div>
       )}
 
-      <div className="flex items-end gap-2 rounded-2xl px-3 py-2 glass-card">
+      <div className="flex items-end gap-2 rounded-2xl px-3 py-2"
+        style={{ background: 'var(--surface-solid)', border: '1px solid var(--border)' }}>
         <textarea value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={onKey}
           placeholder={online ? 'Спросите что угодно…' : 'Нет соединения…'}
           disabled={!online || loading} rows={1}

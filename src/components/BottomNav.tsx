@@ -53,15 +53,14 @@ export function BottomNav({ active, onChange }: { active: Tab; onChange: (tab: T
       className="fixed inset-x-0 bottom-0 z-50 flex justify-center px-4"
       style={{ paddingBottom: 'max(0.85rem, env(safe-area-inset-bottom))' }}
     >
-      {/* Floating glass pill */}
       <div
         className="w-full max-w-sm flex items-center rounded-[28px] px-2 py-1.5"
         style={{
-          background: 'rgba(20, 16, 10, 0.82)',
-          backdropFilter: 'blur(28px) saturate(180%)',
-          WebkitBackdropFilter: 'blur(28px) saturate(180%)',
-          border: '1px solid rgba(255,255,255,0.10)',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.55), 0 2px 8px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06)',
+          background: 'rgba(14, 10, 28, 0.90)',
+          backdropFilter: 'blur(28px) saturate(200%)',
+          WebkitBackdropFilter: 'blur(28px) saturate(200%)',
+          border: '1px solid rgba(139,124,248,0.20)',
+          boxShadow: '0 8px 40px rgba(80,40,200,0.25), 0 2px 12px rgba(0,0,0,0.50), inset 0 1px 0 rgba(139,124,248,0.10)',
         }}
       >
         {tabs.map((tab) => {
@@ -77,13 +76,11 @@ export function BottomNav({ active, onChange }: { active: Tab; onChange: (tab: T
                 WebkitTapHighlightColor: 'transparent',
               }}
             >
-              <span style={{ color: isActive ? '#000' : 'rgba(240,234,216,0.4)' }}>
+              <span style={{ color: isActive ? '#0c0a18' : 'rgba(232,228,248,0.38)' }}>
                 {tab.icon}
               </span>
-              <span
-                className="text-[10px] font-bold leading-none"
-                style={{ color: isActive ? '#000' : 'rgba(240,234,216,0.28)' }}
-              >
+              <span className="text-[10px] font-bold leading-none"
+                style={{ color: isActive ? '#0c0a18' : 'rgba(232,228,248,0.25)' }}>
                 {tab.label}
               </span>
             </button>
