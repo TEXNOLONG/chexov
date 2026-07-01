@@ -1,0 +1,3 @@
+- [Chekhov App Stack](chekhov-stack.md) — React+Vite PWA waiter app, Capacitor Android, Pollinations.ai AI (no key), Dexie IndexedDB, Tailwind CSS 4
+- [Android APK Build](android-build.md) — requires Java 21 (not 17), Kotlin stdlib conflict fixed via resolutionStrategy in build.gradle
+- [Menu Images](menu-images.md) — 275 webp images in public/menu-images/, mapped by item.id.webp, paths stored in menu.json image field

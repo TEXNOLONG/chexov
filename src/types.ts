@@ -8,6 +8,7 @@ export interface MenuItem {
   composition: string
   allergens: string
   price: number
+  image?: string | null
 }
 
 export interface OrderItem {

@@ -10,6 +10,13 @@ import { useOrders, useTableCount } from './hooks/useOrders'
 import { useOnlineStatus } from './hooks/useOnlineStatus'
 import type { Order, Tab } from './types'
 
+const TAB_TITLES: Record<Tab, { title: string; sub: string }> = {
+  tables: { title: 'Заказы', sub: 'Управление столами' },
+  menu:   { title: 'Меню', sub: 'Все блюда и напитки' },
+  ai:     { title: 'AI Ассистент', sub: 'Умный помощник' },
+  stats:  { title: 'Смена', sub: 'Статистика и выручка' },
+}
+
 function App() {
   const orders = useOrders()
   const [tableCount, setTableCount] = useTableCount()
@@ -24,86 +31,87 @@ function App() {
     if (!online) {
       setShowOfflineBanner(true)
     } else {
-      // hide banner after coming back online with a short delay
       const t = setTimeout(() => setShowOfflineBanner(false), 3000)
       return () => clearTimeout(t)
     }
   }, [online])
 
   useEffect(() => {
-    if (selectedTable == null) {
-      setActiveOrder(undefined)
-      return
-    }
+    if (selectedTable == null) { setActiveOrder(undefined); return }
     getActiveOrderForTable(selectedTable).then(setActiveOrder)
   }, [selectedTable, orders, refreshKey])
 
-  const headerInfo = useMemo(() => {
-    if (tab === 'tables') return { subtitle: 'Управление столами', emoji: '🪑' }
-    if (tab === 'menu') return { subtitle: 'Методичка Гастропаб Чехов', emoji: '📋' }
-    if (tab === 'ai') return { subtitle: 'Ваш умный ассистент', emoji: '🤖' }
-    return { subtitle: 'Статистика текущей смены', emoji: '📊' }
-  }, [tab])
+  const { title, sub } = TAB_TITLES[tab]
 
   return (
-    <div className="min-h-screen bg-[var(--bg)] text-[var(--text)]">
-      {/* Offline / back-online banner */}
+    <div className="min-h-screen" style={{ background: 'var(--bg)', color: 'var(--text)' }}>
+      {/* Offline banner */}
       {showOfflineBanner && (
-        <div
-          className={`fixed top-0 inset-x-0 z-[100] flex items-center justify-center gap-2 py-2 text-xs font-semibold transition-all duration-500 ${
-            online
-              ? 'bg-[var(--success)] text-white'
-              : 'bg-[#3a1e1e] text-[#ffb4b4]'
-          }`}
-        >
-          {online ? (
-            <>✅ Соединение восстановлено</>
-          ) : (
-            <>📵 Офлайн — данные сохранены локально</>
-          )}
+        <div className={`fixed top-0 inset-x-0 z-[100] flex items-center justify-center gap-2 py-2.5 text-xs font-semibold transition-all duration-500 ${
+          online
+            ? 'bg-[var(--success)] text-white'
+            : 'bg-[#2a1010] text-[var(--danger)] border-b border-[var(--danger)]/30'
+        }`}>
+          {online ? '✅ Соединение восстановлено' : '📵 Офлайн — данные сохранены'}
         </div>
       )}
 
+      {/* Header */}
       <header
-        className="sticky top-0 z-40 border-b border-[var(--border)] glass px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))]"
-        style={{ marginTop: showOfflineBanner ? '2rem' : 0 }}
+        className="sticky top-0 z-40 glass border-b border-[var(--border)]"
+        style={{
+          paddingTop: showOfflineBanner ? 'calc(max(0.75rem, env(safe-area-inset-top)) + 2.2rem)' : 'max(0.75rem, env(safe-area-inset-top))',
+          paddingBottom: '0.75rem',
+          paddingLeft: '1rem',
+          paddingRight: '1rem',
+          transition: 'padding-top 0.3s ease',
+        }}
       >
-        <div className="mx-auto max-w-3xl">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-base">{headerInfo.emoji}</span>
-                <div className="text-[10px] font-semibold uppercase tracking-[0.25em] text-[var(--accent)]">
-                  Гастропаб Чехов
-                </div>
-                {!online && (
-                  <span className="rounded-full bg-[#3a1e1e] px-1.5 py-0.5 text-[9px] font-semibold uppercase text-[#ffb4b4]">
-                    офлайн
-  </span>
-                )}
+        <div className="mx-auto max-w-3xl flex items-center justify-between gap-3">
+          {/* Logo + title */}
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 mb-0.5">
+              {/* Logo dot */}
+              <div className="w-6 h-6 rounded-lg bg-[var(--accent)] flex items-center justify-center shrink-0">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#0a0806" strokeWidth={2.5} className="w-3.5 h-3.5">
+                  <path d="M3 11l7-7 4 4 7-7" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M21 11v10H3V11" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
               </div>
-              <h1 className="text-lg font-semibold leading-tight">
-                {tab === 'tables' ? 'Заказы' : tab === 'menu' ? 'Меню' : tab === 'ai' ? 'AI Ассистент' : 'Смена'}
-              </h1>
-              <p className="text-xs text-[var(--muted)]">{headerInfo.subtitle}</p>
+              <span className="text-[10px] font-black uppercase tracking-[0.22em] text-[var(--accent)]">
+                Гастропаб Чехов
+              </span>
+              {!online && (
+                <span className="badge badge-danger">офлайн</span>
+              )}
             </div>
-            {tab === 'tables' && (
-              <label className="text-right text-xs text-[var(--muted)]">
-                <span className="block">Столов</span>
-                <input
-                  type="number"
-                  min={1}
-                  max={40}
-                  value={tableCount}
-                  onChange={(e) => setTableCount(Number(e.target.value) || 1)}
-                  className="mt-1 block w-16 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-2 py-1 text-center text-sm text-[var(--text)] outline-none focus:border-[var(--accent)]"
-                />
-              </label>
-            )}
+            <h1 className="text-xl font-black leading-tight">{title}</h1>
+            <p className="text-xs text-[var(--muted)]">{sub}</p>
           </div>
+
+          {/* Table count control */}
+          {tab === 'tables' && (
+            <div className="text-right shrink-0">
+              <div className="text-[10px] font-semibold uppercase tracking-widest text-[var(--muted)] mb-1">Столов</div>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => setTableCount(Math.max(1, tableCount - 1))}
+                  className="w-8 h-8 rounded-xl bg-[var(--surface-2)] text-[var(--muted)] flex items-center justify-center font-bold active:scale-90 transition"
+                >−</button>
+                <span className="w-8 text-center text-base font-black">{tableCount}</span>
+                <button
+                  type="button"
+                  onClick={() => setTableCount(Math.min(40, tableCount + 1))}
+                  className="w-8 h-8 rounded-xl bg-[var(--surface-2)] text-[var(--muted)] flex items-center justify-center font-bold active:scale-90 transition"
+                >+</button>
+              </div>
+            </div>
+          )}
         </div>
       </header>
 
+      {/* Main content */}
       <main className="mx-auto max-w-3xl px-4 py-4 pb-28">
         {tab === 'tables' && (
           <TablesView
@@ -117,8 +125,10 @@ function App() {
         {tab === 'stats' && <StatsView orders={orders} />}
       </main>
 
+      {/* Bottom nav (only when no table selected) */}
       {!selectedTable && <BottomNav active={tab} onChange={setTab} />}
 
+      {/* Order panel */}
       {selectedTable != null && (
         <OrderPanel
           tableNumber={selectedTable}

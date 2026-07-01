@@ -5,21 +5,26 @@ export function Card({
   children,
   className,
   onClick,
+  padding = true,
 }: {
   children: ReactNode
   className?: string
   onClick?: () => void
+  padding?: boolean
 }) {
+  const Tag = onClick ? 'button' : 'div'
   return (
-    <div
+    <Tag
+      type={onClick ? 'button' : undefined}
       onClick={onClick}
       className={cn(
-        'rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm',
-        onClick && 'cursor-pointer transition-all hover:border-[var(--accent)] hover:shadow-md active:scale-[0.99]',
+        'block w-full rounded-2xl border border-[var(--border)] bg-[var(--surface)] transition-all duration-200',
+        padding && 'p-4',
+        onClick && 'cursor-pointer active:scale-[0.98] text-left',
         className,
       )}
     >
       {children}
-    </div>
+    </Tag>
   )
 }
