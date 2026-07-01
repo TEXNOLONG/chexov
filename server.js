@@ -12,17 +12,20 @@ app.post('/api/chat', async (req, res) => {
     if (!Array.isArray(messages)) {
       return res.status(400).json({ error: 'messages must be an array' })
     }
+    // Trim history to last 6 messages to stay within token budget
+    const trimmed = messages.slice(-6)
     const completion = await groq.chat.completions.create({
-      messages,
-      model: 'llama-3.3-70b-versatile',
-      max_tokens: 600,
+      messages: trimmed,
+      model: 'llama-3.1-8b-instant',   // 20k TPM on free tier vs 12k for 70b
+      max_tokens: 400,
       temperature: 0.7,
     })
     res.json({ content: completion.choices[0].message.content ?? '' })
   } catch (err) {
-    console.error('[Groq]', err?.message)
-    res.status(500).json({ error: 'AI unavailable' })
+    console.error('[Groq]', err?.message ?? err)
+    const status = err?.status ?? 500
+    res.status(status).json({ error: err?.message ?? 'AI unavailable' })
   }
 })
 
-app.listen(3001, () => console.log('🤖 Groq proxy on :3001'))
+app.listen(3001, () => console.log('🤖 Groq proxy :3001'))

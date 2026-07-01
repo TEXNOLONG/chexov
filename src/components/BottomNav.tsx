@@ -30,7 +30,7 @@ const tabs: Array<{ id: Tab; label: string; icon: ReactNode }> = [
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="w-5 h-5">
         <path d="M12 2a4 4 0 014 4v1h1a2 2 0 012 2v2a2 2 0 01-2 2h-1v1a4 4 0 01-8 0v-1H7a2 2 0 01-2-2V9a2 2 0 012-2h1V6a4 4 0 014-4z" strokeLinecap="round" strokeLinejoin="round"/>
-        <circle cx="9.5" cy="9.5" r="0.8" fill="currentColor" stroke="none"/>
+        <circle cx="9.5"  cy="9.5" r="0.8" fill="currentColor" stroke="none"/>
         <circle cx="14.5" cy="9.5" r="0.8" fill="currentColor" stroke="none"/>
         <path d="M9.5 13.5s.8 1.5 2.5 1.5 2.5-1.5 2.5-1.5" strokeLinecap="round"/>
       </svg>
@@ -50,10 +50,20 @@ const tabs: Array<{ id: Tab; label: string; icon: ReactNode }> = [
 export function BottomNav({ active, onChange }: { active: Tab; onChange: (tab: Tab) => void }) {
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-50 glass border-t border-[var(--border)]"
-      style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}
+      className="fixed inset-x-0 bottom-0 z-50 flex justify-center px-4"
+      style={{ paddingBottom: 'max(0.85rem, env(safe-area-inset-bottom))' }}
     >
-      <div className="mx-auto grid max-w-3xl grid-cols-4 px-2 pt-1">
+      {/* Floating glass pill */}
+      <div
+        className="w-full max-w-sm flex items-center rounded-[28px] px-2 py-1.5"
+        style={{
+          background: 'rgba(20, 16, 10, 0.82)',
+          backdropFilter: 'blur(28px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(28px) saturate(180%)',
+          border: '1px solid rgba(255,255,255,0.10)',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.55), 0 2px 8px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06)',
+        }}
+      >
         {tabs.map((tab) => {
           const isActive = active === tab.id
           return (
@@ -61,29 +71,18 @@ export function BottomNav({ active, onChange }: { active: Tab; onChange: (tab: T
               key={tab.id}
               type="button"
               onClick={() => onChange(tab.id)}
-              className="relative flex flex-col items-center gap-1 py-2 px-1 transition-all duration-150 rounded-2xl"
-              style={{ WebkitTapHighlightColor: 'transparent' }}
+              className="relative flex flex-1 flex-col items-center gap-1 py-2 px-1 rounded-[22px] transition-all duration-200"
+              style={{
+                background: isActive ? 'var(--accent)' : 'transparent',
+                WebkitTapHighlightColor: 'transparent',
+              }}
             >
-              {/* Yellow pill background for active */}
-              {isActive && (
-                <span
-                  className="absolute inset-x-3 top-1.5 bottom-1"
-                  style={{
-                    background: 'var(--accent)',
-                    borderRadius: '12px',
-                    zIndex: 0,
-                  }}
-                />
-              )}
-              <span
-                className="relative z-10 transition-all duration-150"
-                style={{ color: isActive ? '#000' : 'var(--muted)' }}
-              >
+              <span style={{ color: isActive ? '#000' : 'rgba(240,234,216,0.4)' }}>
                 {tab.icon}
               </span>
               <span
-                className="relative z-10 text-[10px] font-bold leading-none"
-                style={{ color: isActive ? '#000' : 'rgba(245,240,232,0.25)' }}
+                className="text-[10px] font-bold leading-none"
+                style={{ color: isActive ? '#000' : 'rgba(240,234,216,0.28)' }}
               >
                 {tab.label}
               </span>

@@ -69,7 +69,7 @@ export function MenuView({ onPickItem, selectable }: Props) {
 
       <div className="space-y-3 pb-2">
         {/* ── Search bar ── */}
-        <div className="sticky z-20 space-y-2.5 pt-1 pb-2" style={{ top: 'var(--header-h, 88px)', background: 'var(--bg)' }}>
+        <div className="sticky top-0 z-20 space-y-2.5 pt-1 pb-2" style={{ background: 'var(--bg)' }}>
           <div className="relative">
             <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" style={{ color: 'var(--muted)' }}
               viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
