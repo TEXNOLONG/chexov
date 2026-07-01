@@ -46,4 +46,4 @@ export interface ShiftStats {
   itemsSold: number
 }
 
-export type Tab = 'tables' | 'menu' | 'stats'
+export type Tab = 'tables' | 'menu' | 'stats' | 'ai'

@@ -14,8 +14,8 @@ export function Card({
     <div
       onClick={onClick}
       className={cn(
-        'rounded-2xl border border-[#342920] bg-[var(--surface)] p-4 shadow-sm',
-        onClick && 'cursor-pointer transition hover:border-[var(--accent)] active:scale-[0.99]',
+        'rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm',
+        onClick && 'cursor-pointer transition-all hover:border-[var(--accent)] hover:shadow-md active:scale-[0.99]',
         className,
       )}
     >

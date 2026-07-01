@@ -11,10 +11,10 @@ interface Props {
 }
 
 const variants = {
-  default: 'bg-[var(--surface-2)] text-[var(--text)] border border-[#3d3128]',
-  accent: 'bg-[var(--accent)] text-[#1a1410] font-semibold',
-  ghost: 'bg-transparent text-[var(--muted)] border border-transparent',
-  danger: 'bg-[#4a2424] text-[#ffb4b4] border border-[#6b3333]',
+  default: 'bg-[var(--surface-2)] text-[var(--text)] border border-[var(--border)] hover:border-[var(--muted)]',
+  accent: 'bg-[var(--accent)] text-[#0f0c09] font-semibold hover:opacity-90',
+  ghost: 'bg-transparent text-[var(--muted)] border border-transparent hover:text-[var(--text)]',
+  danger: 'bg-[#3a1e1e] text-[#ffb4b4] border border-[#5a2828] hover:bg-[#4a2424]',
 }
 
 export function Button({
@@ -31,7 +31,7 @@ export function Button({
       disabled={disabled}
       onClick={onClick}
       className={cn(
-        'inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm transition active:scale-[0.98] disabled:opacity-40',
+        'inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-2.5 text-sm transition-all active:scale-[0.97] disabled:opacity-40',
         variants[variant],
         className,
       )}

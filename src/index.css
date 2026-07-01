@@ -3,16 +3,20 @@
 :root {
   color-scheme: dark;
   font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-  --bg: #14100d;
-  --surface: #1f1814;
-  --surface-2: #2a211b;
-  --accent: #c8956c;
-  --accent-soft: #3d2e24;
+  --bg: #0f0c09;
+  --surface: #1c1510;
+  --surface-2: #261d16;
+  --surface-3: #312520;
+  --accent: #d4a574;
+  --accent-soft: #3a2a1e;
+  --accent-2: #8b5e3c;
   --text: #f5efe8;
-  --muted: #a89484;
+  --muted: #9a8070;
   --success: #6b9f7b;
   --warning: #c9a227;
   --danger: #c96b6b;
+  --border: #2e211a;
+  --glow: rgba(212, 165, 116, 0.15);
 }
 
 * {
@@ -39,11 +43,108 @@ textarea {
 }
 
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #4a3b30;
+  background: #3a2a1e;
   border-radius: 999px;
+}
+
+/* Smooth animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse-dot {
+  0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+  40% { transform: scale(1); opacity: 1; }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.25s ease-out;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.3s ease-out;
+}
+
+/* Typing indicator dots */
+.typing-dot {
+  animation: pulse-dot 1.4s infinite ease-in-out;
+}
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+/* Glassmorphism blur backgrounds */
+.glass {
+  background: rgba(28, 21, 16, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+/* Category badge pill */
+.cat-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+
+.cat-pill-active {
+  background: var(--accent);
+  color: #0f0c09;
+}
+
+.cat-pill-inactive {
+  background: var(--surface-2);
+  color: var(--muted);
+}
+
+.cat-pill-inactive:hover {
+  background: var(--surface-3);
+  color: var(--text);
+}
+
+/* Status badges */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 9999px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.badge-active {
+  background: rgba(212, 165, 116, 0.15);
+  color: var(--accent);
+}
+
+.badge-served {
+  background: rgba(107, 159, 123, 0.15);
+  color: var(--success);
+}
+
+.badge-paid {
+  background: rgba(107, 159, 123, 0.25);
+  color: var(--success);
 }
