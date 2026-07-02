@@ -1,23 +1,39 @@
 ---
-name: Chekhov Gastropub App Stack
-description: Tech stack, key files, and architecture for the waiter app
+name: Chekhov App Stack
+description: React+Vite PWA waiter app — tech stack, design system, and key architectural decisions
 ---
 
-# Stack
-- React 19 + Vite 8 + TypeScript
-- Tailwind CSS 4 (via @import 'tailwindcss')  
-- Dexie (IndexedDB for offline orders)
-- vite-plugin-pwa (Workbox service worker)
-- Capacitor 7 (Android APK)
-- Pollinations.ai (free AI, no API key)
+## Stack
+- React 19 + Vite 8, Tailwind CSS 4, TypeScript
+- Dexie (IndexedDB) for offline-first data
+- Capacitor Android for APK
+- Express proxy (server.js :3001) for Groq in browser dev; direct Groq API call from APK
 
-# Key files
-- src/data/menu.json — 275 menu items with image paths (image field = /menu-images/{id}.webp)
-- public/menu-images/ — 275 webp food photos from original HTML file
-- src/index.css — all CSS variables, animations, utility classes (no separate component CSS)
-- capacitor.config.ts — appId: ru.chehovgastropub.orders
+## Tabs (types.ts)
+`Tab = 'tables' | 'menu' | 'ai' | 'profile' | 'stats'` — 5 tabs, profile is new (left of stats)
 
-# Design system
-- Dark theme: --bg #0a0806, --accent #d4a574 (gold), --success #6bbf87
-- All animations defined in index.css as @keyframes
-- CSS utility classes: .btn, .btn-accent, .btn-ghost, .btn-danger, .glass, .cat-pill, .order-item, .table-card
+## Design system
+Apple-glass dark purple. **No gold/yellow.** Key vars:
+- `--bg: #07050e` (near-black), `--accent: #a78bfa` (violet), `--success: #34d399`
+- `.glow-card` — glass card with purple glow (use for main cards instead of plain glass-card)
+- Background: 4-layer radial gradient purple glows
+
+## AI architecture (APK-safe)
+- `loadProfile().groqApiKey` → if set, calls `https://api.groq.com/openai/v1/chat/completions` directly (works in APK)
+- Fallback: `/api/chat` proxy (browser dev only, won't work in APK without key)
+- Voice input: Web Speech API, `lang: ru-RU`, result appended to textarea
+
+## Menu search bar (sticky fix)
+MenuView has two modes:
+1. **Controlled** (App.tsx passes `filtered/filteredGrouped/query/category/viewMode`) — used for menu tab. Search bar rendered in `MenuSearchBar.tsx` ABOVE the scroll container in App.tsx (not inside scroll root). This fixes the sticky bug.
+2. **Selectable** (OrderPanel) — self-contained with internal state and sticky bar inside its own scroll context.
+
+## Calendar (ProfileView.tsx)
+`chexov:calendar` in localStorage: `ShiftDay[]` with `{ date: 'YYYY-MM-DD', status: 'planned'|'worked', hours? }`
+Click cycles: none → planned → worked (hours dialog) → none
+
+## Intro screen
+Shows "Привет, {profile.name}!" on first launch. Flag: `chexov:introDone = '1'` in localStorage.
+`handleIntroDone` is `useCallback([], [])` — stable reference, won't restart timers on parent re-renders.
+
+**Why:** Timer effect in IntroScreen depends on `onDone`; unstable reference restarts timers → intro never finishes.

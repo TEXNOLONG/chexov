@@ -6,10 +6,12 @@ import { IntroScreen } from './components/IntroScreen'
 import { MenuSearchBar } from './components/MenuSearchBar'
 import { OrderPanel } from './components/OrderPanel'
 import { MenuView, DRINK_CATS, menu } from './components/MenuView'
+import { ProfileView } from './components/ProfileView'
 import { StatsView } from './components/StatsView'
 import { TablesView } from './components/TablesView'
 import { useOrders, useTableCount } from './hooks/useOrders'
 import { useOnlineStatus } from './hooks/useOnlineStatus'
+import { useProfile } from './hooks/useProfile'
 import { groupMenuByCategory } from './utils'
 import type { Order, Tab } from './types'
 
@@ -27,11 +29,12 @@ function App() {
   const online = useOnlineStatus()
   const [onlineBanner, setOnlineBanner] = useState<'back' | 'lost' | null>(null)
   const prevOnlineRef = useRef<boolean | null>(null)
+  const [profile] = useProfile()
 
   // Intro
   const [showIntro, setShowIntro] = useState(!hasSeenIntro())
 
-  // Menu filter state (lifted so search bar can live outside scroll container)
+  // Menu filter state (lifted so search bar lives outside scroll container — fixes sticky bug)
   const allCats = useMemo(() => [...new Set(menu.map((m) => m.category))], [])
   const foodCats = useMemo(() => allCats.filter((c) => !DRINK_CATS.has(c)), [allCats])
   const drinkCats = useMemo(() => allCats.filter((c) => DRINK_CATS.has(c)), [allCats])
@@ -85,6 +88,7 @@ function App() {
     tables: 'Заказы',
     menu: 'Меню',
     ai: 'AI',
+    profile: profile.name,
     stats: 'Смена',
   }
 
@@ -115,51 +119,46 @@ function App() {
           className="shrink-0 glass border-b border-[var(--border)] z-40"
           style={{
             paddingTop: 'max(0.9rem, env(safe-area-inset-top))',
-            paddingBottom: '0.75rem',
+            paddingBottom: '0.7rem',
             paddingLeft: '1.1rem',
             paddingRight: '1.1rem',
           }}
         >
-          <div className="mx-auto max-w-3xl flex flex-col items-center text-center gap-1">
-            {/* Brand row */}
-            <div className="flex items-center gap-2">
+          <div className="mx-auto max-w-3xl flex flex-col items-center text-center gap-0.5">
+            {/* Brand */}
+            <div className="flex items-center gap-1.5">
               <div
-                className="w-6 h-6 rounded-[8px] shrink-0 flex items-center justify-center"
+                className="w-5 h-5 rounded-[6px] flex items-center justify-center shrink-0"
                 style={{ background: 'var(--accent)' }}
               >
-                <svg viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth={2.4} className="w-3.5 h-3.5">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#07050e" strokeWidth={2.5} className="w-3 h-3">
                   <path d="M3 11l7-7 4 4 7-7" strokeLinecap="round" strokeLinejoin="round"/>
                   <path d="M21 11v10H3V11" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               </div>
-              <span className="text-[10px] font-black uppercase tracking-[0.22em]" style={{ color: 'var(--accent)' }}>
+              <span className="text-[9px] font-black uppercase tracking-[0.24em]" style={{ color: 'var(--accent)' }}>
                 Гастропаб Чехов
               </span>
               {!online && <span className="badge badge-danger">офлайн</span>}
             </div>
 
-            {/* Title row */}
+            {/* Title + table controls */}
             <div className="flex items-center gap-2">
-              <h1 className="text-xl font-black leading-tight">{tabLabel[tab]}</h1>
-              {/* Table counter inline when on tables tab */}
+              <h1 className="text-[22px] font-black leading-tight tracking-tight">{tabLabel[tab]}</h1>
               {tab === 'tables' && (
-                <div className="flex items-center gap-1 ml-1">
+                <div className="flex items-center gap-1">
                   <button type="button" onClick={() => setTableCount(Math.max(1, tableCount - 1))}
-                    className="w-7 h-7 rounded-xl flex items-center justify-center font-bold active:scale-90 transition glass-card text-sm">
-                    −
-                  </button>
-                  <span className="w-6 text-center text-sm font-black">{tableCount}</span>
+                    className="w-7 h-7 rounded-xl flex items-center justify-center font-bold active:scale-90 transition glass-card text-sm">−</button>
+                  <span className="w-6 text-center text-sm font-black tabular-nums">{tableCount}</span>
                   <button type="button" onClick={() => setTableCount(Math.min(40, tableCount + 1))}
-                    className="w-7 h-7 rounded-xl flex items-center justify-center font-bold active:scale-90 transition glass-card text-sm">
-                    +
-                  </button>
+                    className="w-7 h-7 rounded-xl flex items-center justify-center font-bold active:scale-90 transition glass-card text-sm">+</button>
                 </div>
               )}
             </div>
           </div>
         </header>
 
-        {/* ── Menu search bar (fixed between header and content, only on menu tab) ── */}
+        {/* ── Menu search bar (fixed between header and content) ── */}
         {tab === 'menu' && (
           <MenuSearchBar
             query={menuQuery}
@@ -189,8 +188,9 @@ function App() {
                 viewMode={menuViewMode}
               />
             )}
-            {tab === 'ai'    && <AIView />}
-            {tab === 'stats' && <StatsView orders={orders} />}
+            {tab === 'ai'      && <AIView />}
+            {tab === 'profile' && <ProfileView />}
+            {tab === 'stats'   && <StatsView orders={orders} />}
           </div>
         </div>
 

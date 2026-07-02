@@ -37,6 +37,16 @@ const tabs: Array<{ id: Tab; label: string; icon: ReactNode }> = [
     ),
   },
   {
+    id: 'profile',
+    label: 'Профиль',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="w-5 h-5">
+        <circle cx="12" cy="8" r="4"/>
+        <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" strokeLinecap="round"/>
+      </svg>
+    ),
+  },
+  {
     id: 'stats',
     label: 'Смена',
     icon: (
@@ -50,17 +60,17 @@ const tabs: Array<{ id: Tab; label: string; icon: ReactNode }> = [
 export function BottomNav({ active, onChange }: { active: Tab; onChange: (tab: Tab) => void }) {
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-50 flex justify-center px-4"
+      className="fixed inset-x-0 bottom-0 z-50 flex justify-center px-3"
       style={{ paddingBottom: 'max(0.85rem, env(safe-area-inset-bottom))' }}
     >
       <div
-        className="w-full max-w-sm flex items-center rounded-[28px] px-2 py-1.5"
+        className="w-full max-w-sm flex items-center rounded-[28px] px-1.5 py-1.5"
         style={{
-          background: 'rgba(14, 10, 28, 0.90)',
-          backdropFilter: 'blur(28px) saturate(200%)',
-          WebkitBackdropFilter: 'blur(28px) saturate(200%)',
-          border: '1px solid rgba(139,124,248,0.20)',
-          boxShadow: '0 8px 40px rgba(80,40,200,0.25), 0 2px 12px rgba(0,0,0,0.50), inset 0 1px 0 rgba(139,124,248,0.10)',
+          background: 'rgba(9,6,20,0.92)',
+          backdropFilter: 'blur(32px) saturate(220%)',
+          WebkitBackdropFilter: 'blur(32px) saturate(220%)',
+          border: '1px solid rgba(167,139,250,0.18)',
+          boxShadow: '0 8px 48px rgba(60,20,180,0.30), 0 2px 16px rgba(0,0,0,0.55), inset 0 1px 0 rgba(167,139,250,0.10)',
         }}
       >
         {tabs.map((tab) => {
@@ -70,17 +80,19 @@ export function BottomNav({ active, onChange }: { active: Tab; onChange: (tab: T
               key={tab.id}
               type="button"
               onClick={() => onChange(tab.id)}
-              className="relative flex flex-1 flex-col items-center gap-1 py-2 px-1 rounded-[22px] transition-all duration-200"
+              className="relative flex flex-1 flex-col items-center gap-0.5 py-2 px-1 rounded-[22px] transition-all duration-200"
               style={{
                 background: isActive ? 'var(--accent)' : 'transparent',
                 WebkitTapHighlightColor: 'transparent',
               }}
             >
-              <span style={{ color: isActive ? '#0c0a18' : 'rgba(232,228,248,0.38)' }}>
+              <span style={{ color: isActive ? '#07050e' : 'rgba(167,139,250,0.38)' }}>
                 {tab.icon}
               </span>
-              <span className="text-[10px] font-bold leading-none"
-                style={{ color: isActive ? '#0c0a18' : 'rgba(232,228,248,0.25)' }}>
+              <span
+                className="text-[9px] font-bold leading-none"
+                style={{ color: isActive ? '#07050e' : 'rgba(167,139,250,0.28)' }}
+              >
                 {tab.label}
               </span>
             </button>
