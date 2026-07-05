@@ -31,8 +31,12 @@ function App() {
   const prevOnlineRef = useRef<boolean | null>(null)
   const [profile] = useProfile()
 
-  // Intro
-  const [showIntro, setShowIntro] = useState(!hasSeenIntro())
+  // Intro — mark as seen immediately so killing mid-animation doesn't replay it
+  const [showIntro, setShowIntro] = useState(() => {
+    const seen = hasSeenIntro()
+    if (!seen) localStorage.setItem('chexov:introDone', '1')
+    return !seen
+  })
 
   // Menu filter state (lifted so search bar lives outside scroll container — fixes sticky bug)
   const allCats = useMemo(() => [...new Set(menu.map((m) => m.category))], [])
@@ -80,7 +84,6 @@ function App() {
   }, [selectedTable, orders, refreshKey])
 
   const handleIntroDone = useCallback(() => {
-    localStorage.setItem('chexov:introDone', '1')
     setShowIntro(false)
   }, [])
 
