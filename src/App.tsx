@@ -13,13 +13,16 @@ import { useOrders, useTableCount } from './hooks/useOrders'
 import { useOnlineStatus } from './hooks/useOnlineStatus'
 import { useProfile } from './hooks/useProfile'
 import { groupMenuByCategory } from './utils'
+import { GoStopProvider, useGoStop } from './contexts/GoStopContext'
 import type { Order, Tab } from './types'
+
+const TABS: Tab[] = ['tables', 'menu', 'ai', 'profile', 'stats']
 
 function hasSeenIntro() {
   return localStorage.getItem('chexov:introDone') === '1'
 }
 
-function App() {
+function AppInner() {
   const orders = useOrders()
   const [tableCount, setTableCount] = useTableCount()
   const [tab, setTab] = useState<Tab>('tables')
@@ -30,6 +33,7 @@ function App() {
   const [onlineBanner, setOnlineBanner] = useState<'back' | 'lost' | null>(null)
   const prevOnlineRef = useRef<boolean | null>(null)
   const [profile] = useProfile()
+  const { goSet, stopSet } = useGoStop()
 
   // Intro — mark as seen immediately so killing mid-animation doesn't replay it
   const [showIntro, setShowIntro] = useState(() => {
@@ -46,9 +50,34 @@ function App() {
   const [menuSection, setMenuSection] = useState<'food' | 'drinks'>('food')
   const [menuCategory, setMenuCategory] = useState('all')
   const [menuViewMode, setMenuViewMode] = useState<'grid' | 'list'>('grid')
+  const [goFilter, setGoFilter] = useState(false)
+  const [stopFilter, setStopFilter] = useState(false)
   const menuVisibleCats = menuSection === 'food' ? foodCats : drinkCats
 
+  // Swipe gesture state
+  const touchStartX = useRef(0)
+  const touchStartY = useRef(0)
+
+  function handleTouchStart(e: React.TouchEvent) {
+    touchStartX.current = e.touches[0].clientX
+    touchStartY.current = e.touches[0].clientY
+  }
+
+  function handleTouchEnd(e: React.TouchEvent) {
+    if (selectedTable != null) return // order panel is open — don't swipe
+    const dx = e.changedTouches[0].clientX - touchStartX.current
+    const dy = Math.abs(e.changedTouches[0].clientY - touchStartY.current)
+    if (Math.abs(dx) < 72 || dy > Math.abs(dx) * 0.75) return // too short or mostly vertical scroll
+    const idx = TABS.indexOf(tab)
+    if (dx < 0 && idx < TABS.length - 1) setTab(TABS[idx + 1])
+    if (dx > 0 && idx > 0) setTab(TABS[idx - 1])
+  }
+
   const menuFiltered = useMemo(() => {
+    // GO / Stop-list quick filters
+    if (goFilter)   return menu.filter((item) => goSet.has(item.id))
+    if (stopFilter) return menu.filter((item) => stopSet.has(item.id))
+
     const q = menuQuery.trim().toLowerCase()
     return menu.filter((item) => {
       if (q) {
@@ -64,7 +93,7 @@ function App() {
       if (!inSection) return false
       return menuCategory === 'all' || item.category === menuCategory
     })
-  }, [menuQuery, menuSection, menuCategory])
+  }, [menuQuery, menuSection, menuCategory, goFilter, stopFilter, goSet, stopSet])
 
   const menuFilteredGrouped = useMemo(() => groupMenuByCategory(menuFiltered), [menuFiltered])
 
@@ -102,6 +131,8 @@ function App() {
       <div
         className="flex flex-col"
         style={{ height: '100dvh', overflow: 'hidden', background: 'var(--bg)', color: 'var(--text)' }}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
       >
         {/* Online/offline banner */}
         {onlineBanner && (
@@ -128,7 +159,6 @@ function App() {
           }}
         >
           <div className="mx-auto max-w-3xl flex flex-col items-center text-center gap-0.5">
-            {/* Brand */}
             <div className="flex items-center gap-1.5">
               <div
                 className="w-5 h-5 rounded-[6px] flex items-center justify-center shrink-0"
@@ -145,7 +175,6 @@ function App() {
               {!online && <span className="badge badge-danger">офлайн</span>}
             </div>
 
-            {/* Title + table controls */}
             <div className="flex items-center gap-2">
               <h1 className="text-[22px] font-black leading-tight tracking-tight">{tabLabel[tab]}</h1>
               {tab === 'tables' && (
@@ -165,14 +194,20 @@ function App() {
         {tab === 'menu' && (
           <MenuSearchBar
             query={menuQuery}
-            onQueryChange={setMenuQuery}
+            onQueryChange={(q) => { setMenuQuery(q); setGoFilter(false); setStopFilter(false) }}
             section={menuSection}
-            onSectionChange={setMenuSection}
+            onSectionChange={(s) => { setMenuSection(s); setMenuCategory('all'); setGoFilter(false); setStopFilter(false) }}
             category={menuCategory}
             onCategoryChange={setMenuCategory}
             viewMode={menuViewMode}
             onViewModeToggle={() => setMenuViewMode(v => v === 'grid' ? 'list' : 'grid')}
             visibleCats={menuVisibleCats}
+            goCount={goSet.size}
+            stopCount={stopSet.size}
+            goFilter={goFilter}
+            stopFilter={stopFilter}
+            onToggleGoFilter={() => { setGoFilter(v => !v); setStopFilter(false); setMenuQuery('') }}
+            onToggleStopFilter={() => { setStopFilter(v => !v); setGoFilter(false); setMenuQuery('') }}
           />
         )}
 
@@ -212,4 +247,10 @@ function App() {
   )
 }
 
-export default App
+export default function App() {
+  return (
+    <GoStopProvider>
+      <AppInner />
+    </GoStopProvider>
+  )
+}

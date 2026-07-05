@@ -20,6 +20,7 @@ export interface OrderItem {
   note?: string
   volume?: number
   served: boolean
+  servingCourse?: number   // 1 = сначала, 2 = потом, 3 = вместе со всем
 }
 
 export interface Order {

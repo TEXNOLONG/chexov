@@ -9,6 +9,12 @@ interface Props {
   onViewModeToggle: () => void
   visibleCats: string[]
   selectable?: boolean
+  goCount?: number
+  stopCount?: number
+  goFilter?: boolean
+  stopFilter?: boolean
+  onToggleGoFilter?: () => void
+  onToggleStopFilter?: () => void
 }
 
 export function MenuSearchBar({
@@ -18,6 +24,9 @@ export function MenuSearchBar({
   viewMode, onViewModeToggle,
   visibleCats,
   selectable,
+  goCount = 0, stopCount = 0,
+  goFilter = false, stopFilter = false,
+  onToggleGoFilter, onToggleStopFilter,
 }: Props) {
   return (
     <div
@@ -49,9 +58,41 @@ export function MenuSearchBar({
         )}
       </div>
 
-      {/* Section toggle + view mode */}
+      {/* GO / Stop quick-filter pills + section toggle + view mode */}
       {!query && (
         <div className="flex gap-2 items-center">
+          {/* GO and Stop-list quick filter buttons */}
+          {(onToggleGoFilter || onToggleStopFilter) && (
+            <div className="flex gap-1.5">
+              {onToggleGoFilter && (
+                <button
+                  type="button"
+                  onClick={onToggleGoFilter}
+                  className="shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold transition active:scale-95"
+                  style={goFilter
+                    ? { background: 'rgba(250,200,50,0.22)', color: '#f5c518', border: '1.5px solid rgba(245,197,24,0.6)' }
+                    : { background: 'var(--surface-2s)', color: 'var(--muted)', border: '1.5px solid transparent' }
+                  }
+                >
+                  🟡 GO{goCount > 0 && ` ${goCount}`}
+                </button>
+              )}
+              {onToggleStopFilter && (
+                <button
+                  type="button"
+                  onClick={onToggleStopFilter}
+                  className="shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold transition active:scale-95"
+                  style={stopFilter
+                    ? { background: 'rgba(248,113,113,0.16)', color: 'var(--danger)', border: '1.5px solid rgba(248,113,113,0.5)' }
+                    : { background: 'var(--surface-2s)', color: 'var(--muted)', border: '1.5px solid transparent' }
+                  }
+                >
+                  🔴 Стоп{stopCount > 0 && ` ${stopCount}`}
+                </button>
+              )}
+            </div>
+          )}
+
           <div className="flex flex-1 gap-1 p-1 rounded-2xl" style={{ background: 'var(--surface-2s)' }}>
             {(['food', 'drinks'] as const).map((s) => (
               <button
@@ -68,7 +109,7 @@ export function MenuSearchBar({
               </button>
             ))}
           </div>
-          {!selectable && (
+          {!selectable && !goFilter && !stopFilter && (
             <button
               type="button"
               onClick={onViewModeToggle}
@@ -84,8 +125,8 @@ export function MenuSearchBar({
         </div>
       )}
 
-      {/* Category pills */}
-      {!query && (
+      {/* Category pills (hidden when GO/Stop filter is active) */}
+      {!query && !goFilter && !stopFilter && (
         <div className="flex gap-1.5 overflow-x-auto pb-0.5 scrollbar-hide">
           <button
             type="button"
