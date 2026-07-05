@@ -447,30 +447,29 @@ export function OrderPanel({ tableNumber, order, onClose, onChanged }: Props) {
                         </div>
                       </div>
 
-                      {/* Course + qty controls */}
-                      <div className="flex flex-col items-end gap-1 shrink-0">
-                        {/* Serving course button */}
+                      {/* Controls column */}
+                      <div className="flex flex-col items-end gap-1.5 shrink-0">
+                        {/* Serving course button — big enough to tap on mobile */}
                         <button
                           type="button"
                           onClick={() => cycleCourse(item.id)}
-                          className="text-[10px] font-bold px-2 py-0.5 rounded-lg transition active:scale-90"
+                          className="text-xs font-bold px-3 py-1.5 rounded-xl transition active:scale-90 min-w-[68px] text-center"
                           style={courseInfo
-                            ? { background: `${courseInfo.color}22`, color: courseInfo.color, border: `1px solid ${courseInfo.color}44` }
-                            : { background: 'var(--surface-2)', color: 'var(--muted)', border: '1px solid var(--border)' }
+                            ? { background: `${courseInfo.color}22`, color: courseInfo.color, border: `1.5px solid ${courseInfo.color}55` }
+                            : { background: 'var(--surface-2s)', color: 'var(--muted)', border: '1px solid var(--border)' }
                           }
-                          title="Порядок подачи"
                         >
-                          {courseInfo ? `${courseInfo.emoji} ${courseInfo.label}` : '↕ подача'}
+                          {courseInfo ? `${courseInfo.emoji} ${courseInfo.label}` : '↕ Подача'}
                         </button>
 
                         <div className="flex items-center gap-1">
                           <button type="button" onClick={() => changeQty(item.id, -1)}
-                            className="w-7 h-7 rounded-xl bg-[var(--surface-2)] text-base font-bold text-[var(--muted)] flex items-center justify-center active:scale-90">−</button>
-                          <span className="w-5 text-center text-sm font-bold">{item.quantity}</span>
+                            className="w-8 h-8 rounded-xl bg-[var(--surface-2s)] text-base font-bold text-[var(--muted)] flex items-center justify-center active:scale-90">−</button>
+                          <span className="w-6 text-center text-sm font-bold tabular-nums">{item.quantity}</span>
                           <button type="button" onClick={() => changeQty(item.id, 1)}
-                            className="w-7 h-7 rounded-xl bg-[var(--surface-2)] text-base font-bold text-[var(--muted)] flex items-center justify-center active:scale-90">+</button>
+                            className="w-8 h-8 rounded-xl bg-[var(--surface-2s)] text-base font-bold text-[var(--muted)] flex items-center justify-center active:scale-90">+</button>
                           <button type="button" onClick={() => removeItem(item.id)}
-                            className="w-7 h-7 rounded-xl bg-[var(--danger-soft)] text-[var(--danger)] flex items-center justify-center text-xs active:scale-90 ml-0.5">✕</button>
+                            className="w-8 h-8 rounded-xl bg-[var(--danger-soft)] text-[var(--danger)] flex items-center justify-center text-xs active:scale-90 ml-0.5">✕</button>
                         </div>
                       </div>
                     </div>

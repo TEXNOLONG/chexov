@@ -238,12 +238,15 @@ export function AIView() {
         {messages.map((msg, i) => (
           <div key={i} className={`flex gap-2 animate-fade-in ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             {msg.role === 'assistant' && (
-              <div className="mt-1 h-7 w-7 shrink-0 rounded-full flex items-center justify-center text-xs font-black"
-                style={{ background: 'linear-gradient(135deg, var(--purple) 0%, var(--accent) 100%)', color: '#07050e' }}>
-                AI
+              <div className="mt-1 h-7 w-7 shrink-0 rounded-full flex items-center justify-center"
+                style={{ background: 'var(--surface-solid)', border: '1px solid var(--border)' }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="w-3.5 h-3.5" style={{ color: 'var(--accent)' }}>
+                  <path d="M12 2a7 7 0 017 7c0 2.38-1.19 4.47-3 5.74V17a1 1 0 01-1 1H9a1 1 0 01-1-1v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 017-7z" strokeLinecap="round"/>
+                  <path d="M10 17v3M14 17v3" strokeLinecap="round"/>
+                </svg>
               </div>
             )}
-            <div className="max-w-[84%] rounded-2xl px-4 py-3 text-sm leading-relaxed"
+            <div className="max-w-[88%] rounded-2xl px-4 py-3 text-sm leading-relaxed"
               style={msg.role === 'user'
                 ? { background: 'var(--accent)', color: '#07050e', fontWeight: 600, borderRadius: '20px 20px 6px 20px' }
                 : { background: 'var(--surface-solid)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: '6px 20px 20px 20px' }

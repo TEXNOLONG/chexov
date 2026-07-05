@@ -5,18 +5,22 @@ import { BottomNav } from './components/BottomNav'
 import { IntroScreen } from './components/IntroScreen'
 import { MenuSearchBar } from './components/MenuSearchBar'
 import { OrderPanel } from './components/OrderPanel'
-import { MenuView, DRINK_CATS, menu } from './components/MenuView'
+import { MenuView, DRINK_CATS, menu as baseMenu } from './components/MenuView'
 import { ProfileView } from './components/ProfileView'
+import { SettingsView } from './components/SettingsView'
 import { StatsView } from './components/StatsView'
 import { TablesView } from './components/TablesView'
 import { useOrders, useTableCount } from './hooks/useOrders'
 import { useOnlineStatus } from './hooks/useOnlineStatus'
 import { useProfile } from './hooks/useProfile'
+import { ThemeProvider } from './contexts/ThemeContext'
+import { MenuOverridesProvider, useMenuOverrides, applyOverrides } from './contexts/MenuOverridesContext'
+import { fuzzyFilter } from './hooks/useFuzzySearch'
 import { groupMenuByCategory } from './utils'
 import { GoStopProvider, useGoStop } from './contexts/GoStopContext'
 import type { Order, Tab } from './types'
 
-const TABS: Tab[] = ['tables', 'menu', 'ai', 'profile', 'stats']
+const TABS: Tab[] = ['tables', 'menu', 'ai', 'profile', 'settings', 'stats']
 
 function hasSeenIntro() {
   return localStorage.getItem('chexov:introDone') === '1'
@@ -34,16 +38,20 @@ function AppInner() {
   const prevOnlineRef = useRef<boolean | null>(null)
   const [profile] = useProfile()
   const { goSet, stopSet } = useGoStop()
+  const { overrides, newItems } = useMenuOverrides()
 
-  // Intro — mark as seen immediately so killing mid-animation doesn't replay it
+  // Merged menu (base + overrides + new items)
+  const menu = useMemo(() => applyOverrides(baseMenu, overrides, newItems), [overrides, newItems])
+
+  // Intro
   const [showIntro, setShowIntro] = useState(() => {
     const seen = hasSeenIntro()
     if (!seen) localStorage.setItem('chexov:introDone', '1')
     return !seen
   })
 
-  // Menu filter state (lifted so search bar lives outside scroll container — fixes sticky bug)
-  const allCats = useMemo(() => [...new Set(menu.map((m) => m.category))], [])
+  // Menu filter state
+  const allCats = useMemo(() => [...new Set(menu.map((m) => m.category))], [menu])
   const foodCats = useMemo(() => allCats.filter((c) => !DRINK_CATS.has(c)), [allCats])
   const drinkCats = useMemo(() => allCats.filter((c) => DRINK_CATS.has(c)), [allCats])
   const [menuQuery, setMenuQuery] = useState('')
@@ -64,36 +72,30 @@ function AppInner() {
   }
 
   function handleTouchEnd(e: React.TouchEvent) {
-    if (selectedTable != null) return // order panel is open — don't swipe
+    if (selectedTable != null) return
     const dx = e.changedTouches[0].clientX - touchStartX.current
     const dy = Math.abs(e.changedTouches[0].clientY - touchStartY.current)
-    if (Math.abs(dx) < 72 || dy > Math.abs(dx) * 0.75) return // too short or mostly vertical scroll
+    if (Math.abs(dx) < 72 || dy > Math.abs(dx) * 0.75) return
     const idx = TABS.indexOf(tab)
     if (dx < 0 && idx < TABS.length - 1) setTab(TABS[idx + 1])
     if (dx > 0 && idx > 0) setTab(TABS[idx - 1])
   }
 
+  // Fuzzy filtered menu
   const menuFiltered = useMemo(() => {
-    // GO / Stop-list quick filters
     if (goFilter)   return menu.filter((item) => goSet.has(item.id))
     if (stopFilter) return menu.filter((item) => stopSet.has(item.id))
-
-    const q = menuQuery.trim().toLowerCase()
+    const q = menuQuery.trim()
+    if (q) {
+      // Fuzzy search ignores section/category
+      return fuzzyFilter(q, menu)
+    }
     return menu.filter((item) => {
-      if (q) {
-        return (
-          item.name.toLowerCase().includes(q) ||
-          item.description.toLowerCase().includes(q) ||
-          item.composition.toLowerCase().includes(q) ||
-          item.allergens.toLowerCase().includes(q) ||
-          item.category.toLowerCase().includes(q)
-        )
-      }
       const inSection = menuSection === 'food' ? !DRINK_CATS.has(item.category) : DRINK_CATS.has(item.category)
       if (!inSection) return false
       return menuCategory === 'all' || item.category === menuCategory
     })
-  }, [menuQuery, menuSection, menuCategory, goFilter, stopFilter, goSet, stopSet])
+  }, [menuQuery, menuSection, menuCategory, goFilter, stopFilter, goSet, stopSet, menu])
 
   const menuFilteredGrouped = useMemo(() => groupMenuByCategory(menuFiltered), [menuFiltered])
 
@@ -112,15 +114,14 @@ function AppInner() {
     getActiveOrderForTable(selectedTable).then((o) => setActiveOrder(o ?? null))
   }, [selectedTable, orders, refreshKey])
 
-  const handleIntroDone = useCallback(() => {
-    setShowIntro(false)
-  }, [])
+  const handleIntroDone = useCallback(() => setShowIntro(false), [])
 
   const tabLabel: Record<Tab, string> = {
     tables: 'Заказы',
     menu: 'Меню',
-    ai: 'AI',
+    ai: 'ИИ',
     profile: profile.name,
+    settings: 'Настройки',
     stats: 'Смена',
   }
 
@@ -136,34 +137,27 @@ function AppInner() {
       >
         {/* Online/offline banner */}
         {onlineBanner && (
-          <div
-            className="shrink-0 flex items-center justify-center gap-2 py-2.5 text-xs font-semibold"
-            style={
-              onlineBanner === 'back'
-                ? { background: 'var(--success)', color: '#000' }
-                : { background: 'var(--danger-soft)', color: 'var(--danger)' }
-            }
-          >
+          <div className="shrink-0 flex items-center justify-center gap-2 py-2.5 text-xs font-semibold"
+            style={onlineBanner === 'back'
+              ? { background: 'var(--success)', color: '#000' }
+              : { background: 'var(--danger-soft)', color: 'var(--danger)' }
+            }>
             {onlineBanner === 'back' ? '✅ Соединение восстановлено' : '📵 Офлайн — данные сохранены'}
           </div>
         )}
 
         {/* ── Header ── */}
-        <header
-          className="shrink-0 glass border-b border-[var(--border)] z-40"
+        <header className="shrink-0 glass border-b border-[var(--border)] z-40"
           style={{
             paddingTop: 'max(0.9rem, env(safe-area-inset-top))',
             paddingBottom: '0.7rem',
             paddingLeft: '1.1rem',
             paddingRight: '1.1rem',
-          }}
-        >
+          }}>
           <div className="mx-auto max-w-3xl flex flex-col items-center text-center gap-0.5">
             <div className="flex items-center gap-1.5">
-              <div
-                className="w-5 h-5 rounded-[6px] flex items-center justify-center shrink-0"
-                style={{ background: 'var(--accent)' }}
-              >
+              <div className="w-5 h-5 rounded-[6px] flex items-center justify-center shrink-0"
+                style={{ background: 'var(--accent)' }}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="#07050e" strokeWidth={2.5} className="w-3 h-3">
                   <path d="M3 11l7-7 4 4 7-7" strokeLinecap="round" strokeLinejoin="round"/>
                   <path d="M21 11v10H3V11" strokeLinecap="round" strokeLinejoin="round"/>
@@ -190,7 +184,7 @@ function AppInner() {
           </div>
         </header>
 
-        {/* ── Menu search bar (fixed between header and content) ── */}
+        {/* ── Menu search bar ── */}
         {tab === 'menu' && (
           <MenuSearchBar
             query={menuQuery}
@@ -226,9 +220,10 @@ function AppInner() {
                 viewMode={menuViewMode}
               />
             )}
-            {tab === 'ai'      && <AIView />}
-            {tab === 'profile' && <ProfileView />}
-            {tab === 'stats'   && <StatsView orders={orders} />}
+            {tab === 'ai'       && <AIView />}
+            {tab === 'profile'  && <ProfileView />}
+            {tab === 'settings' && <SettingsView />}
+            {tab === 'stats'    && <StatsView orders={orders} />}
           </div>
         </div>
 
@@ -249,8 +244,12 @@ function AppInner() {
 
 export default function App() {
   return (
-    <GoStopProvider>
-      <AppInner />
-    </GoStopProvider>
+    <ThemeProvider>
+      <MenuOverridesProvider>
+        <GoStopProvider>
+          <AppInner />
+        </GoStopProvider>
+      </MenuOverridesProvider>
+    </ThemeProvider>
   )
 }

@@ -5,6 +5,7 @@ import { formatPrice, groupMenuByCategory } from '../utils'
 import { DishModal } from './DishModal'
 import { useLongPress } from '../hooks/useLongPress'
 import { useGoStop } from '../contexts/GoStopContext'
+import { fuzzyFilter } from '../hooks/useFuzzySearch'
 
 export const DRINK_CATS = new Set([
   'Спецпредложение Бар', 'Игристые вина', 'Белые вина', 'Красные вина', 'Розовые вина',
@@ -42,11 +43,10 @@ export function MenuView(props: Props) {
   const { selectable, onPickItem } = props
   const { goSet, stopSet, toggleGo, toggleStop, cookTimes, setCookTime } = useGoStop()
 
-  // ── Internal state (only used when selectable) ──
+  // ── Internal state (selectable mode — inside OrderPanel) ──
   const [intQuery, setIntQuery] = useState('')
   const [intCategory, setIntCategory] = useState('all')
   const [intSection, setIntSection] = useState<'food' | 'drinks'>('food')
-  const [intViewMode] = useState<'grid' | 'list'>('list')
 
   const allCats = useMemo(() => [...new Set(menu.map((m) => m.category))], [])
   const foodCats = useMemo(() => allCats.filter((c) => !DRINK_CATS.has(c)), [allCats])
@@ -55,17 +55,9 @@ export function MenuView(props: Props) {
 
   const intFiltered = useMemo(() => {
     if (!selectable) return []
-    const q = intQuery.trim().toLowerCase()
+    const q = intQuery.trim()
+    if (q) return fuzzyFilter(q, menu)
     return menu.filter((item) => {
-      if (q) {
-        return (
-          item.name.toLowerCase().includes(q) ||
-          item.description.toLowerCase().includes(q) ||
-          item.composition.toLowerCase().includes(q) ||
-          item.allergens.toLowerCase().includes(q) ||
-          item.category.toLowerCase().includes(q)
-        )
-      }
       const inSection = intSection === 'food' ? !DRINK_CATS.has(item.category) : DRINK_CATS.has(item.category)
       if (!inSection) return false
       return intCategory === 'all' || item.category === intCategory
@@ -76,7 +68,7 @@ export function MenuView(props: Props) {
 
   const query    = selectable ? intQuery    : props.query
   const category = selectable ? intCategory : props.category
-  const viewMode = selectable ? intViewMode : props.viewMode
+  const viewMode = selectable ? 'list' : props.viewMode
   const filtered = selectable ? intFiltered : props.filtered
   const filteredGrouped = selectable ? intFilteredGrouped : props.filteredGrouped
 
@@ -111,7 +103,7 @@ export function MenuView(props: Props) {
               <input
                 value={intQuery}
                 onChange={(e) => { setIntQuery(e.target.value); setIntCategory('all') }}
-                placeholder="Поиск блюд…"
+                placeholder="Поиск блюд… (нечёткий)"
                 className="search-input"
               />
               {intQuery && (
@@ -130,7 +122,7 @@ export function MenuView(props: Props) {
                       onClick={() => { setIntSection(s); setIntCategory('all') }}
                       className="flex-1 py-2 rounded-xl text-sm font-bold transition-all duration-200"
                       style={intSection === s ? { background: 'var(--accent)', color: '#0a0806' } : { color: 'var(--muted)' }}>
-                      {s === 'food' ? '🍽 Кухня' : '🍷 Бар'}
+                      {s === 'food' ? 'Кухня' : 'Бар'}
                     </button>
                   ))}
                 </div>
@@ -153,7 +145,7 @@ export function MenuView(props: Props) {
 
         {!selectable && !query && (
           <p className="text-[10px] text-center pt-1" style={{ color: 'var(--muted)' }}>
-            Удержите карточку чтобы увидеть детали, GO и Стоп-лист
+            Нажмите карточку → детали, GO и Стоп-лист
           </p>
         )}
 
@@ -184,6 +176,8 @@ export function MenuView(props: Props) {
                       isGo={goSet.has(item.id)}
                       isStop={stopSet.has(item.id)}
                       cookTime={cookTimes[item.id]}
+                      onToggleGo={() => toggleGo(item.id)}
+                      onToggleStop={() => toggleStop(item.id)}
                     />
                   ))}
                 </div>
@@ -199,6 +193,8 @@ export function MenuView(props: Props) {
                       isGo={goSet.has(item.id)}
                       isStop={stopSet.has(item.id)}
                       cookTime={cookTimes[item.id]}
+                      onToggleGo={() => toggleGo(item.id)}
+                      onToggleStop={() => toggleStop(item.id)}
                     />
                   ))}
                 </div>
@@ -213,14 +209,15 @@ export function MenuView(props: Props) {
 
 /* ─── Grid card ── */
 function GridCard({
-  item, idx, onDetail, isGo, isStop, cookTime,
+  item, idx, onDetail, isGo, isStop, cookTime, onToggleGo, onToggleStop,
 }: {
   item: MenuItem; idx: number; onDetail: (i: MenuItem) => void
   isGo: boolean; isStop: boolean; cookTime?: number
+  onToggleGo: () => void; onToggleStop: () => void
 }) {
   const isDrink = DRINK_CATS.has(item.category)
-  const lp = useLongPress({ onLongPress: () => onDetail(item) })
 
+  // Single tap = open detail (no long press needed)
   const borderColor = isGo
     ? '1.5px solid rgba(245,197,24,0.65)'
     : isStop
@@ -228,7 +225,7 @@ function GridCard({
     : '1px solid var(--border)'
 
   return (
-    <div {...lp}
+    <div
       className="rounded-2xl overflow-hidden select-none"
       style={{
         background: 'var(--surface-solid)',
@@ -262,17 +259,42 @@ function GridCard({
                 </div>
               )}
             </div>
-            {isGo && (
-              <div className="absolute top-2 right-2 text-[10px] font-black px-1.5 py-0.5 rounded-lg"
-                style={{ background: 'rgba(245,197,24,0.9)', color: '#0a0806' }}>GO</div>
-            )}
           </>
         ) : (
           <div className="w-full h-full flex items-center justify-center text-4xl" style={{ background: 'var(--surface-2s)' }}>
             {isDrink ? '🍷' : '🍽'}
           </div>
         )}
+
+        {/* GO / Stop quick-toggle buttons — always visible on card */}
+        <div className="absolute top-2 left-2 flex gap-1" onClick={(e) => e.stopPropagation()}>
+          <button
+            type="button"
+            onClick={() => onToggleGo()}
+            className="w-7 h-7 flex items-center justify-center rounded-lg text-[11px] font-black transition active:scale-90"
+            style={isGo
+              ? { background: 'rgba(245,197,24,0.9)', color: '#0a0806' }
+              : { background: 'rgba(0,0,0,0.55)', color: 'rgba(255,255,255,0.7)', backdropFilter: 'blur(4px)' }
+            }
+            title={isGo ? 'Убрать из GO' : 'Добавить в GO'}
+          >
+            GO
+          </button>
+          <button
+            type="button"
+            onClick={() => onToggleStop()}
+            className="w-7 h-7 flex items-center justify-center rounded-lg text-[11px] font-black transition active:scale-90"
+            style={isStop
+              ? { background: 'rgba(248,113,113,0.9)', color: '#fff' }
+              : { background: 'rgba(0,0,0,0.45)', color: 'rgba(255,255,255,0.6)', backdropFilter: 'blur(4px)' }
+            }
+            title={isStop ? 'Убрать из стопа' : 'В стоп-лист'}
+          >
+            ✕
+          </button>
+        </div>
       </div>
+
       <div className="px-3 py-2.5">
         <div className="text-[13px] font-semibold leading-snug line-clamp-2"
           style={{ color: isStop ? 'var(--danger)' : 'var(--text)', textDecoration: isStop ? 'line-through' : 'none' }}>
@@ -283,9 +305,6 @@ function GridCard({
             {item.price > 0 ? formatPrice(item.price) : '—'}
           </div>
         )}
-        <div className="mt-1.5 flex items-center gap-1" style={{ color: 'var(--muted)' }}>
-          <span className="text-[10px]">удержите для деталей</span>
-        </div>
       </div>
     </div>
   )
@@ -293,11 +312,12 @@ function GridCard({
 
 /* ─── List row ── */
 function ListRow({
-  item, idx, selectable, onDetail, onPick, isGo, isStop, cookTime,
+  item, idx, selectable, onDetail, onPick, isGo, isStop, cookTime, onToggleGo, onToggleStop,
 }: {
   item: MenuItem; idx: number; selectable: boolean
   onDetail: (i: MenuItem) => void; onPick?: (i: MenuItem) => void
   isGo: boolean; isStop: boolean; cookTime?: number
+  onToggleGo: () => void; onToggleStop: () => void
 }) {
   const isDrink = DRINK_CATS.has(item.category)
   const lp = useLongPress({
@@ -339,6 +359,7 @@ function ListRow({
           </div>
         )}
       </div>
+
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5 flex-wrap">
           <div className="text-sm font-semibold leading-snug"
@@ -353,17 +374,37 @@ function ListRow({
           {cookTime && <span>· ⏱{cookTime}м</span>}
         </div>
       </div>
-      <div className="shrink-0 text-right">
+
+      <div className="shrink-0 flex flex-col items-end gap-1.5">
         <div className="text-sm font-black" style={{ color: isDrink ? '#9fc5e8' : 'var(--accent)' }}>
           {item.price > 0 ? formatPrice(item.price) : '—'}
         </div>
+
         {selectable ? (
           <button type="button"
             onClick={(e) => { e.stopPropagation(); onPick?.(item) }}
-            className="mt-1.5 w-8 h-8 flex items-center justify-center rounded-xl font-bold text-lg"
+            className="w-8 h-8 flex items-center justify-center rounded-xl font-bold text-lg"
             style={{ background: 'var(--accent)', color: '#0a0806' }}>+</button>
         ) : (
-          <div className="mt-1 text-[10px]" style={{ color: 'var(--muted)' }}>удержи</div>
+          /* GO / Stop inline buttons in list mode */
+          <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+            <button type="button" onClick={() => onToggleGo()}
+              className="h-6 px-2 rounded-lg text-[9px] font-black transition active:scale-90"
+              style={isGo
+                ? { background: 'rgba(245,197,24,0.22)', color: '#f5c518', border: '1px solid rgba(245,197,24,0.5)' }
+                : { background: 'var(--surface-2s)', color: 'var(--muted)', border: '1px solid var(--border)' }
+              }>
+              GO
+            </button>
+            <button type="button" onClick={() => onToggleStop()}
+              className="h-6 px-2 rounded-lg text-[9px] font-black transition active:scale-90"
+              style={isStop
+                ? { background: 'rgba(248,113,113,0.18)', color: 'var(--danger)', border: '1px solid rgba(248,113,113,0.4)' }
+                : { background: 'var(--surface-2s)', color: 'var(--muted)', border: '1px solid var(--border)' }
+              }>
+              СТОП
+            </button>
+          </div>
         )}
       </div>
     </div>
